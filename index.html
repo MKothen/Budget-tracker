@@ -1,0 +1,396 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Personal Budget Tracker</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- For "Add to Home Screen" -->
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Budget">
+    <link rel="apple-touch-icon" href="https://placehold.co/180x180/1F2937/7DD3FC?text=💰">
+
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            -webkit-tap-highlight-color: transparent; /* Removes blue tap highlight on iOS */
+        }
+        /* Animations for adding/removing categories */
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .animate-fade-in {
+            animation: fadeIn 0.3s ease-out forwards;
+        }
+
+        @keyframes fadeOut {
+            from { opacity: 1; transform: scale(1); }
+            to { opacity: 0; transform: scale(0.9); }
+        }
+        .animate-fade-out {
+            animation: fadeOut 0.3s ease-in forwards;
+        }
+        
+        /* Animation for input error feedback */
+        @keyframes shake {
+          10%, 90% { transform: translate3d(-1px, 0, 0); }
+          20%, 80% { transform: translate3d(2px, 0, 0); }
+          30%, 50%, 70% { transform: translate3d(-4px, 0, 0); }
+          40%, 60% { transform: translate3d(4px, 0, 0); }
+        }
+        .animate-shake {
+            animation: shake 0.5s cubic-bezier(.36,.07,.19,.97) both;
+        }
+    </style>
+</head>
+<body class="bg-gray-900 text-white p-4 sm:p-6 md:p-8">
+
+    <div class="max-w-4xl mx-auto">
+        <!-- Header -->
+        <header class="text-center mb-8">
+            <h1 class="text-3xl sm:text-4xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-teal-300">Your Monthly Budget</h1>
+            <p class="text-gray-400 mt-2">All data is saved automatically on this device.</p>
+        </header>
+
+        <!-- Main Grid Layout -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+
+            <!-- Left Column: Settings & Summary -->
+            <div class="md:col-span-1 space-y-6">
+                <!-- Settings Card -->
+                <div class="bg-gray-800 p-6 rounded-2xl shadow-lg">
+                    <h2 class="text-xl font-bold mb-4 border-b border-gray-700 pb-2">⚙️ Settings</h2>
+                    <div class="space-y-4">
+                        <label for="hourlyRate" class="block text-sm font-medium text-gray-300">Your Hourly Rate (€)</label>
+                        <input type="number" id="hourlyRate" value="15.50" step="0.01" class="w-full bg-gray-700 text-white p-3 rounded-lg border border-gray-600 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition">
+                    </div>
+                </div>
+
+                <!-- Summary Card -->
+                <div class="bg-gray-800 p-6 rounded-2xl shadow-lg sticky top-6">
+                    <h2 class="text-xl font-bold mb-4 border-b border-gray-700 pb-2">📊 Monthly Summary</h2>
+                    <div class="space-y-4">
+                        <div>
+                            <p class="text-sm text-gray-400">Total Income</p>
+                            <p id="totalIncome" class="text-2xl font-semibold text-green-400">€0.00</p>
+                        </div>
+                        <div>
+                            <p class="text-sm text-gray-400">Total Expenses</p>
+                            <p id="totalExpenses" class="text-2xl font-semibold text-red-400">€0.00</p>
+                        </div>
+                        <div class="pt-4 border-t border-gray-700">
+                            <p class="text-sm text-gray-400">Net Balance</p>
+                            <p id="netBalance" class="text-3xl font-bold">€0.00</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Column: Income & Expenses -->
+            <div class="md:col-span-2 space-y-6">
+                <!-- Income Card -->
+                <div class="bg-gray-800 p-6 rounded-2xl shadow-lg">
+                    <h2 class="text-xl font-bold mb-4">💰 Income</h2>
+                    <div class="space-y-6">
+                        <div>
+                            <h3 class="font-semibold text-lg mb-3 text-blue-300">Job Income (Zero-Hour)</h3>
+                            <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-4">
+                                <!-- Weeks 1-5 -->
+                                <div>
+                                    <label for="week1" class="block text-xs font-medium text-gray-300 mb-1">Week 1 Hours</label>
+                                    <input type="number" id="week1" placeholder="0" class="income-hours w-full bg-gray-700 text-white p-2 rounded-lg text-center border border-gray-600">
+                                    <div id="pay1" class="text-center text-xs mt-1 text-gray-400">€0.00</div>
+                                </div>
+                                <div>
+                                    <label for="week2" class="block text-xs font-medium text-gray-300 mb-1">Week 2 Hours</label>
+                                    <input type="number" id="week2" placeholder="0" class="income-hours w-full bg-gray-700 text-white p-2 rounded-lg text-center border border-gray-600">
+                                    <div id="pay2" class="text-center text-xs mt-1 text-gray-400">€0.00</div>
+                                </div>
+                                <div>
+                                    <label for="week3" class="block text-xs font-medium text-gray-300 mb-1">Week 3 Hours</label>
+                                    <input type="number" id="week3" placeholder="0" class="income-hours w-full bg-gray-700 text-white p-2 rounded-lg text-center border border-gray-600">
+                                    <div id="pay3" class="text-center text-xs mt-1 text-gray-400">€0.00</div>
+                                </div>
+                                <div>
+                                    <label for="week4" class="block text-xs font-medium text-gray-300 mb-1">Week 4 Hours</label>
+                                    <input type="number" id="week4" placeholder="0" class="income-hours w-full bg-gray-700 text-white p-2 rounded-lg text-center border border-gray-600">
+                                    <div id="pay4" class="text-center text-xs mt-1 text-gray-400">€0.00</div>
+                                </div>
+                                <div>
+                                    <label for="week5" class="block text-xs font-medium text-gray-300 mb-1">Week 5 Hours</label>
+                                    <input type="number" id="week5" placeholder="0" class="income-hours w-full bg-gray-700 text-white p-2 rounded-lg text-center border border-gray-600">
+                                    <div id="pay5" class="text-center text-xs mt-1 text-gray-400">€0.00</div>
+                                </div>
+                            </div>
+                        </div>
+                         <div class="border-t border-gray-700"></div>
+                        <div>
+                             <h3 class="font-semibold text-lg mb-3 text-blue-300">Other Income</h3>
+                             <div id="predefined-incomes-container" class="space-y-3">
+                                 <div class="flex items-center justify-between">
+                                     <label for="toeslagen" class="text-gray-300">Toeslagen</label>
+                                     <input type="number" id="toeslagen" placeholder="0.00" class="income-item w-32 bg-gray-700 text-white p-2 rounded-lg text-right border border-gray-600">
+                                 </div>
+                                 <div class="flex items-center justify-between">
+                                     <label for="duo" class="text-gray-300">DUO</label>
+                                     <input type="number" id="duo" placeholder="0.00" class="income-item w-32 bg-gray-700 text-white p-2 rounded-lg text-right border border-gray-600">
+                                 </div>
+                                 <div class="flex items-center justify-between">
+                                     <label for="dad" class="text-gray-300">Support from Dad</label>
+                                     <input type="number" id="dad" placeholder="0.00" class="income-item w-32 bg-gray-700 text-white p-2 rounded-lg text-right border border-gray-600">
+                                 </div>
+                             </div>
+                        </div>
+                        <div class="border-t border-gray-700"></div>
+                        <div>
+                            <h3 class="font-semibold text-lg text-blue-300 mb-3">Your Custom Income Categories</h3>
+                            <div id="custom-incomes-container" class="space-y-3 mb-4"></div>
+                            <div class="flex gap-2 items-center">
+                                <input type="text" id="new-income-name" placeholder="New category name..." class="flex-grow bg-gray-700 text-white p-2 rounded-lg border border-gray-600 focus:ring-2 focus:ring-blue-500 transition">
+                                <button id="add-income-btn" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg transition-colors shrink-0">Add</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Expenses Card -->
+                <div class="bg-gray-800 p-6 rounded-2xl shadow-lg">
+                    <h2 class="text-xl font-bold mb-4">💸 Expenses</h2>
+                    <div class="space-y-6">
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-4" id="predefined-expenses-container">
+                             <div class="space-y-3">
+                                <h3 class="font-semibold text-lg text-blue-300">Fixed</h3>
+                                 <div class="flex items-center justify-between">
+                                     <label for="rent" class="text-gray-300">Rent</label>
+                                     <input type="number" id="rent" placeholder="0.00" class="expense-item w-32 bg-gray-700 text-white p-2 rounded-lg text-right border border-gray-600">
+                                 </div>
+                                 <div class="flex items-center justify-between">
+                                     <label for="health" class="text-gray-300">Health Insurance</label>
+                                     <input type="number" id="health" placeholder="0.00" class="expense-item w-32 bg-gray-700 text-white p-2 rounded-lg text-right border border-gray-600">
+                                 </div>
+                                 <div class="flex items-center justify-between">
+                                     <label for="subscriptions" class="text-gray-300">Subscriptions</label>
+                                     <input type="number" id="subscriptions" placeholder="0.00" class="expense-item w-32 bg-gray-700 text-white p-2 rounded-lg text-right border border-gray-600">
+                                 </div>
+                            </div>
+                            <div class="space-y-3">
+                                 <h3 class="font-semibold text-lg text-blue-300">Variable</h3>
+                                 <div class="flex items-center justify-between">
+                                     <label for="groceries" class="text-gray-300">Groceries</label>
+                                     <input type="number" id="groceries" placeholder="0.00" class="expense-item w-32 bg-gray-700 text-white p-2 rounded-lg text-right border border-gray-600">
+                                 </div>
+                                 <div class="flex items-center justify-between">
+                                     <label for="transport" class="text-gray-300">Transport</label>
+                                     <input type="number" id="transport" placeholder="0.00" class="expense-item w-32 bg-gray-700 text-white p-2 rounded-lg text-right border border-gray-600">
+                                 </div>
+                                 <div class="flex items-center justify-between">
+                                     <label for="personal" class="text-gray-300">Personal/Fun</label>
+                                     <input type="number" id="personal" placeholder="0.00" class="expense-item w-32 bg-gray-700 text-white p-2 rounded-lg text-right border border-gray-600">
+                                 </div>
+                            </div>
+                        </div>
+                        <div class="border-t border-gray-700"></div>
+                        <div>
+                            <h3 class="font-semibold text-lg text-blue-300 mb-3">Your Custom Expense Categories</h3>
+                            <div id="custom-expenses-container" class="space-y-3 mb-4"></div>
+                            <div class="flex gap-2 items-center">
+                                <input type="text" id="new-expense-name" placeholder="New category name..." class="flex-grow bg-gray-700 text-white p-2 rounded-lg border border-gray-600 focus:ring-2 focus:ring-blue-500 transition">
+                                <button id="add-expense-btn" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg transition-colors shrink-0">Add</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const STORAGE_KEY = 'personalBudgetTrackerData';
+
+            // --- Function to save all data to localStorage ---
+            function saveData() {
+                const customIncomes = [];
+                document.querySelectorAll('#custom-incomes-container .custom-income-row').forEach(row => {
+                    customIncomes.push({ name: row.querySelector('label').textContent, value: row.querySelector('input').value });
+                });
+
+                const customExpenses = [];
+                document.querySelectorAll('#custom-expenses-container .custom-expense-row').forEach(row => {
+                    customExpenses.push({ name: row.querySelector('label').textContent, value: row.querySelector('input').value });
+                });
+
+                const data = {
+                    hourlyRate: document.getElementById('hourlyRate').value,
+                    weeklyHours: Array.from(document.querySelectorAll('.income-hours')).map(input => input.value),
+                    predefinedIncomes: Array.from(document.querySelectorAll('#predefined-incomes-container .income-item')).map(input => ({ id: input.id, value: input.value })),
+                    predefinedExpenses: Array.from(document.querySelectorAll('#predefined-expenses-container .expense-item')).map(input => ({ id: input.id, value: input.value })),
+                    customIncomes: customIncomes,
+                    customExpenses: customExpenses
+                };
+
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+            }
+
+            // --- Function to load data from localStorage ---
+            function loadData() {
+                const savedData = localStorage.getItem(STORAGE_KEY);
+                if (!savedData) return;
+
+                const data = JSON.parse(savedData);
+
+                document.getElementById('hourlyRate').value = data.hourlyRate || '15.50';
+                
+                if (data.weeklyHours) {
+                    document.querySelectorAll('.income-hours').forEach((input, index) => { input.value = data.weeklyHours[index] || ''; });
+                }
+                
+                if (data.predefinedIncomes) {
+                    data.predefinedIncomes.forEach(item => { const input = document.getElementById(item.id); if (input) input.value = item.value || ''; });
+                }
+
+                if (data.predefinedExpenses) {
+                    data.predefinedExpenses.forEach(item => { const input = document.getElementById(item.id); if (input) input.value = item.value || ''; });
+                }
+
+                if (data.customIncomes) {
+                    data.customIncomes.forEach(item => { addIncomeCategory(item.name, item.value); });
+                }
+
+                if (data.customExpenses) {
+                    data.customExpenses.forEach(item => { addExpenseCategory(item.name, item.value); });
+                }
+            }
+
+            // --- Calculation Logic ---
+            function calculateBudget() {
+                const hourlyRate = parseFloat(document.getElementById('hourlyRate').value) || 0;
+                let totalJobIncome = 0;
+                document.querySelectorAll('.income-hours').forEach((input, index) => {
+                    const hours = parseFloat(input.value) || 0;
+                    const weeklyPay = hours * hourlyRate;
+                    totalJobIncome += weeklyPay;
+                    document.getElementById(`pay${index + 1}`).textContent = `€${weeklyPay.toFixed(2)}`;
+                });
+
+                let totalOtherIncome = 0;
+                document.querySelectorAll('.income-item').forEach(input => totalOtherIncome += parseFloat(input.value) || 0);
+                
+                const finalTotalIncome = totalJobIncome + totalOtherIncome;
+
+                let finalTotalExpenses = 0;
+                document.querySelectorAll('.expense-item').forEach(input => finalTotalExpenses += parseFloat(input.value) || 0);
+
+                const netBalance = finalTotalIncome - finalTotalExpenses;
+
+                document.getElementById('totalIncome').textContent = `€${finalTotalIncome.toFixed(2)}`;
+                document.getElementById('totalExpenses').textContent = `€${finalTotalExpenses.toFixed(2)}`;
+                
+                const netBalanceDisplay = document.getElementById('netBalance');
+                netBalanceDisplay.textContent = `€${netBalance.toFixed(2)}`;
+                netBalanceDisplay.classList.remove('text-green-400', 'text-red-400', 'text-gray-300');
+                if (netBalance > 0) netBalanceDisplay.classList.add('text-green-400');
+                else if (netBalance < 0) netBalanceDisplay.classList.add('text-red-400');
+                else netBalanceDisplay.classList.add('text-gray-300');
+                
+                saveData();
+            }
+
+            // --- Factory for creating new category rows ---
+            function createCategoryRow(categoryName, value, type) {
+                const isExpense = type === 'expense';
+                const rowClass = isExpense ? 'custom-expense-row' : 'custom-income-row';
+                const inputClass = isExpense ? 'expense-item' : 'income-item';
+                
+                const newRow = document.createElement('div');
+                newRow.className = `flex items-center justify-between animate-fade-in ${rowClass}`;
+
+                const label = document.createElement('label');
+                label.className = 'text-gray-300';
+                label.textContent = categoryName;
+
+                const inputWrapper = document.createElement('div');
+                inputWrapper.className = 'flex items-center gap-2';
+
+                const input = document.createElement('input');
+                input.type = 'number';
+                input.placeholder = '0.00';
+                input.value = value;
+                input.className = `${inputClass} w-32 bg-gray-700 text-white p-2 rounded-lg text-right border border-gray-600`;
+                input.addEventListener('input', calculateBudget);
+
+                const removeBtn = document.createElement('button');
+                removeBtn.textContent = '✕';
+                removeBtn.className = 'text-gray-400 hover:text-red-400 font-bold transition-colors w-6 h-6 flex items-center justify-center';
+                removeBtn.title = 'Remove category';
+                removeBtn.addEventListener('click', () => {
+                    newRow.classList.add('animate-fade-out');
+                    setTimeout(() => { newRow.remove(); calculateBudget(); }, 300);
+                });
+                
+                inputWrapper.appendChild(input);
+                inputWrapper.appendChild(removeBtn);
+                newRow.appendChild(label);
+                newRow.appendChild(inputWrapper);
+
+                return newRow;
+            }
+
+            function addIncomeCategory(name, value = '') {
+                const categoryName = name || document.getElementById('new-income-name').value.trim();
+                if (categoryName === "") {
+                    const input = document.getElementById('new-income-name');
+                    input.classList.add('animate-shake');
+                    setTimeout(() => input.classList.remove('animate-shake'), 500);
+                    return;
+                }
+                const newRow = createCategoryRow(categoryName, value, 'income');
+                document.getElementById('custom-incomes-container').appendChild(newRow);
+
+                if (!name) { 
+                  const newIncomeNameInput = document.getElementById('new-income-name');
+                  newIncomeNameInput.value = '';
+                  newIncomeNameInput.focus();
+                }
+                calculateBudget();
+            }
+
+            function addExpenseCategory(name, value = '') {
+                const categoryName = name || document.getElementById('new-expense-name').value.trim();
+                if (categoryName === "") {
+                    const input = document.getElementById('new-expense-name');
+                    input.classList.add('animate-shake');
+                    setTimeout(() => input.classList.remove('animate-shake'), 500);
+                    return;
+                }
+                const newRow = createCategoryRow(categoryName, value, 'expense');
+                document.getElementById('custom-expenses-container').appendChild(newRow);
+
+                if (!name) { 
+                  const newExpenseNameInput = document.getElementById('new-expense-name');
+                  newExpenseNameInput.value = '';
+                  newExpenseNameInput.focus();
+                }
+                calculateBudget();
+            }
+
+            // --- Initial Setup & Event Listeners ---
+            document.querySelectorAll('input[type="number"]').forEach(input => input.addEventListener('input', calculateBudget));
+
+            document.getElementById('add-income-btn').addEventListener('click', () => addIncomeCategory());
+            document.getElementById('new-income-name').addEventListener('keypress', (e) => { if (e.key === 'Enter') { e.preventDefault(); addIncomeCategory(); }});
+
+            document.getElementById('add-expense-btn').addEventListener('click', () => addExpenseCategory());
+            document.getElementById('new-expense-name').addEventListener('keypress', (e) => { if (e.key === 'Enter') { e.preventDefault(); addExpenseCategory(); }});
+
+            loadData();
+            calculateBudget();
+        });
+    </script>
+</body>
+</html>
+
+
