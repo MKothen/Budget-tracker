@@ -15,6 +15,17 @@
         .modal, #auth-container { display: none; }
         .modal.active, #auth-container.active { display: flex; }
         #app-container.hidden { display: none; }
+
+        /* --- FIX FOR CALENDAR LAYOUT --- */
+        .transaction-item {
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            cursor: pointer;
+        }
+        .calendar-day {
+            min-width: 0; /* Prevents grid blowout from long content */
+        }
     </style>
 </head>
 <body class="antialiased text-gray-800">
@@ -175,8 +186,8 @@
         const typeIncomeBtn = document.getElementById('type-income');
         const typeExpenseBtn = document.getElementById('type-expense');
         const incomeSourceGroup = document.getElementById('income-source-group');
-        const amountGroup = document.getElementById('amount-group'); // This was missing
-        const hoursGroup = document.getElementById('hours-group');   // This was missing
+        const amountGroup = document.getElementById('amount-group');
+        const hoursGroup = document.getElementById('hours-group');
         const incomeSourceRadios = document.querySelectorAll('input[name="income-source"]');
         const calculatedIncomeSpan = document.getElementById('calculated-income');
         const cancelBtn = document.getElementById('cancel-transaction');
@@ -420,8 +431,10 @@
                     const transactionList = dayCell.querySelector('.transaction-list');
                     transactions[date].forEach(t => {
                         const item = document.createElement('div');
-                        item.className = `transaction-item p-1 rounded-md text-white truncate ${t.type === 'income' ? 'bg-green-500' : 'bg-red-500'}`;
-                        item.textContent = `${t.description}: €${t.amount.toFixed(2)}`;
+                        const fullText = `${t.description}: €${t.amount.toFixed(2)}`;
+                        item.className = `transaction-item p-1 rounded-md text-white ${t.type === 'income' ? 'bg-green-500' : 'bg-red-500'}`;
+                        item.textContent = fullText;
+                        item.title = fullText; // Add full text as a tooltip
                         item.dataset.id = t.id;
                         item.dataset.date = date;
                         item.addEventListener('click', (e) => { e.stopPropagation(); openModal(date, t.id); });
@@ -446,12 +459,14 @@
             const netSpan = document.getElementById('summary-net');
             netSpan.textContent = `€${net.toFixed(2)}`;
             netSpan.className = `font-bold ${net >= 0 ? 'text-green-600' : 'text-red-600'}`;
-            let runningBalance = settings.initialBalance;
-            Object.values(transactions).flat().sort((a,b) => dayjs(a.date).isAfter(dayjs(b.date)) ? 1 : -1).forEach(t => {
-                if (!dayjs(t.date).isAfter(dayjs(), 'day')) {
-                    runningBalance += t.type === 'income' ? t.amount : -t.amount;
-                }
-            });
+            let runningBalance = parseFloat(settings.initialBalance) || 0;
+            const sortedTransactions = Object.values(transactions).flat().sort((a,b) => dayjs(a.date).isAfter(dayjs(b.date)) ? 1 : -1);
+            
+            for (const t of sortedTransactions) {
+                if (dayjs(t.date).isAfter(dayjs(), 'day')) continue; // Don't include future transactions in today's balance
+                runningBalance += t.type === 'income' ? t.amount : -t.amount;
+            }
+
             const cashFlowSpan = document.getElementById('summary-cashflow');
             cashFlowSpan.textContent = `€${runningBalance.toFixed(2)}`;
             cashFlowSpan.className = `font-bold ${runningBalance >= 0 ? 'text-gray-800' : 'text-red-600'}`;
@@ -520,7 +535,7 @@
             document.getElementById('daily-breakdown-date').textContent = dayjs(dateStr).format('MMMM D, YYYY');
             breakdownDiv.classList.remove('hidden');
             contentDiv.innerHTML = '';
-            let runningBalance = settings.initialBalance;
+            let runningBalance = parseFloat(settings.initialBalance) || 0;
             const sortedTransactions = Object.values(transactions).flat().sort((a,b) => dayjs(a.date).isAfter(dayjs(b.date)) ? 1 : -1);
 
             for (const t of sortedTransactions) {
@@ -562,6 +577,7 @@
     </script>
 </body>
 </html>
+
 
 
 
