@@ -16,15 +16,18 @@
         .modal.active, #auth-container.active { display: flex; }
         #app-container.hidden { display: none; }
 
-        /* --- FIX FOR CALENDAR LAYOUT --- */
+        /* --- ROBUST FIX FOR CALENDAR LAYOUT ON ALL DEVICES --- */
+        .calendar-day {
+            min-width: 0; /* Prevents grid blowout from long content */
+        }
+        .transaction-list {
+            overflow: hidden; /* NEW: Forcefully contains the transaction items */
+        }
         .transaction-item {
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
             cursor: pointer;
-        }
-        .calendar-day {
-            min-width: 0; /* Prevents grid blowout from long content */
         }
     </style>
 </head>
@@ -577,8 +580,6 @@
     </script>
 </body>
 </html>
-
-
 
 
 
