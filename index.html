@@ -88,6 +88,22 @@
                             <div class="flex justify-between items-center text-lg"><span class="font-semibold">Cash Flow Today:</span><span id="summary-cashflow" class="font-bold">€0.00</span></div>
                         </div>
                     </div>
+                     <div class="bg-white p-6 rounded-lg shadow-md">
+                        <h3 class="text-lg font-semibold mb-4 border-b pb-2">Monthly Distributed Expenses</h3>
+                        <form id="recurring-form" class="mb-4 space-y-3">
+                            <input type="hidden" id="recurring-id">
+                            <div>
+                                <label for="recurring-description" class="text-sm font-medium text-gray-700">Description</label>
+                                <input type="text" id="recurring-description" placeholder="e.g., Groceries" class="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm" required>
+                            </div>
+                            <div>
+                                <label for="recurring-amount" class="text-sm font-medium text-gray-700">Monthly Budget (€)</label>
+                                <input type="number" id="recurring-amount" placeholder="e.g., 300" class="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm" step="0.01" required>
+                            </div>
+                            <button type="submit" id="add-recurring-btn" class="w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700">Add Expense</button>
+                        </form>
+                        <div id="recurring-expenses-list" class="space-y-2"></div>
+                    </div>
                     <div class="bg-white p-6 rounded-lg shadow-md">
                         <h3 class="text-lg font-semibold mb-4 border-b pb-2">Settings</h3>
                         <div class="space-y-4">
@@ -99,7 +115,7 @@
                                 <label for="initial-balance" class="block text-sm font-medium text-gray-700 mb-1">Initial Balance (€)</label>
                                 <input type="number" id="initial-balance" class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500" placeholder="e.g., 500.00" step="0.01">
                             </div>
-                            <button id="save-settings" class="w-full bg-indigo-600 text-white py-2 px-4 rounded-md hover:bg-indigo-700 transition-colors">Save Settings</button>
+                            <button id="save-settings-btn" class="w-full bg-indigo-600 text-white py-2 px-4 rounded-md hover:bg-indigo-700 transition-colors">Save Settings</button>
                         </div>
                     </div>
                     <div id="daily-breakdown" class="bg-white p-6 rounded-lg shadow-md hidden">
@@ -153,12 +169,12 @@
         // Global variables
         let currentDate = dayjs();
         let transactions = {};
-        let settings = { hourlyRate: '', initialBalance: 0 };
+        let settings = { hourlyRate: '', initialBalance: 0, recurringExpenses: [] };
         let currentTransactionType = 'expense';
         let currentUserId = null;
         let unsubscribeTransactions;
 
-        // DOM Elements (Auth)
+        // DOM Elements
         const authContainer = document.getElementById('auth-container');
         const appContainer = document.getElementById('app-container');
         const authForm = document.getElementById('auth-form');
@@ -169,15 +185,13 @@
         const logoutButton = document.getElementById('logout-button');
         const emailInput = document.getElementById('email');
         const passwordInput = document.getElementById('password');
-
-        // DOM Elements (App)
         const calendarBody = document.getElementById('calendar-body');
         const currentMonthYear = document.getElementById('current-month-year');
         const prevMonthBtn = document.getElementById('prev-month');
         const nextMonthBtn = document.getElementById('next-month');
         const hourlyRateInput = document.getElementById('hourly-rate');
         const initialBalanceInput = document.getElementById('initial-balance');
-        const saveSettingsBtn = document.getElementById('save-settings');
+        const saveSettingsBtn = document.getElementById('save-settings-btn');
         const modal = document.getElementById('transaction-modal');
         const modalTitle = document.getElementById('modal-title');
         const transactionForm = document.getElementById('transaction-form');
@@ -195,58 +209,25 @@
         const calculatedIncomeSpan = document.getElementById('calculated-income');
         const cancelBtn = document.getElementById('cancel-transaction');
         const deleteBtn = document.getElementById('delete-transaction');
+        const recurringForm = document.getElementById('recurring-form');
+        const recurringDescriptionInput = document.getElementById('recurring-description');
+        const recurringAmountInput = document.getElementById('recurring-amount');
+        const recurringIdInput = document.getElementById('recurring-id');
+        const addRecurringBtn = document.getElementById('add-recurring-btn');
+        const recurringExpensesList = document.getElementById('recurring-expenses-list');
         
-        // --- AUTHENTICATION LOGIC ---
-
+        // --- AUTH LOGIC ---
         let isLoginMode = true;
+        authToggle.addEventListener('click', (e) => { e.preventDefault(); isLoginMode = !isLoginMode; authTitle.textContent = isLoginMode ? 'Login' : 'Sign Up'; authButton.textContent = isLoginMode ? 'Login' : 'Create Account'; authToggle.textContent = isLoginMode ? 'Need an account? Sign up' : 'Have an account? Login'; authError.textContent = ''; });
+        authForm.addEventListener('submit', async (e) => { e.preventDefault(); const email = emailInput.value; const password = passwordInput.value; authError.textContent = ''; try { if (isLoginMode) { await signInWithEmailAndPassword(auth, email, password); } else { await createUserWithEmailAndPassword(auth, email, password); } } catch (error) { authError.textContent = error.message; } });
+        logoutButton.addEventListener('click', async () => { if (unsubscribeTransactions) unsubscribeTransactions(); await signOut(auth); currentUserId = null; transactions = {}; });
+        onAuthStateChanged(auth, user => { if (user) { currentUserId = user.uid; authContainer.classList.remove('active'); appContainer.classList.remove('hidden'); loadSettingsAndTransactions(); } else { authContainer.classList.add('active'); appContainer.classList.add('hidden'); } });
 
-        authToggle.addEventListener('click', (e) => {
-            e.preventDefault();
-            isLoginMode = !isLoginMode;
-            authTitle.textContent = isLoginMode ? 'Login' : 'Sign Up';
-            authButton.textContent = isLoginMode ? 'Login' : 'Create Account';
-            authToggle.textContent = isLoginMode ? 'Need an account? Sign up' : 'Have an account? Login';
-            authError.textContent = '';
-        });
-
-        authForm.addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const email = emailInput.value;
-            const password = passwordInput.value;
-            authError.textContent = '';
-
-            try {
-                if (isLoginMode) {
-                    await signInWithEmailAndPassword(auth, email, password);
-                } else {
-                    await createUserWithEmailAndPassword(auth, email, password);
-                }
-            } catch (error) {
-                authError.textContent = error.message;
-            }
-        });
-
-        logoutButton.addEventListener('click', async () => {
-            if (unsubscribeTransactions) unsubscribeTransactions();
-            await signOut(auth);
-            currentUserId = null;
-            transactions = {};
-        });
-
-        onAuthStateChanged(auth, user => {
-            if (user) {
-                currentUserId = user.uid;
-                authContainer.classList.remove('active');
-                appContainer.classList.remove('hidden');
-                loadSettings();
-                listenForTransactions();
-            } else {
-                authContainer.classList.add('active');
-                appContainer.classList.add('hidden');
-            }
-        });
-
-        // --- DATA LOGIC (FIRESTORE) ---
+        // --- DATA & SETTINGS LOGIC (FIRESTORE) ---
+        async function loadSettingsAndTransactions() {
+            await loadSettings();
+            listenForTransactions();
+        }
 
         async function saveSettings() {
             if (!currentUserId) return;
@@ -254,8 +235,6 @@
             settings.initialBalance = parseFloat(initialBalanceInput.value) || 0;
             const settingsRef = doc(db, 'users', currentUserId);
             await setDoc(settingsRef, { settings }, { merge: true });
-            alert('Settings saved!');
-            renderAll();
         }
 
         async function loadSettings() {
@@ -263,210 +242,147 @@
             const settingsRef = doc(db, 'users', currentUserId);
             const docSnap = await getDoc(settingsRef);
             if (docSnap.exists() && docSnap.data().settings) {
-                settings = docSnap.data().settings;
+                const loadedSettings = docSnap.data().settings;
+                settings.hourlyRate = loadedSettings.hourlyRate || '';
+                settings.initialBalance = loadedSettings.initialBalance || 0;
+                settings.recurringExpenses = loadedSettings.recurringExpenses || [];
                 hourlyRateInput.value = settings.hourlyRate;
                 initialBalanceInput.value = settings.initialBalance;
             }
             renderAll();
         }
         
+        // --- TRANSACTION LOGIC ---
         function listenForTransactions() {
             if (!currentUserId) return;
             if (unsubscribeTransactions) unsubscribeTransactions();
             const transCollectionRef = collection(db, 'users', currentUserId, 'transactions');
-            
             unsubscribeTransactions = onSnapshot(transCollectionRef, (snapshot) => {
                 transactions = {};
-                snapshot.forEach(doc => {
-                    const t = { id: doc.id, ...doc.data() };
-                    if (!transactions[t.date]) {
-                        transactions[t.date] = [];
-                    }
-                    transactions[t.date].push(t);
-                });
+                snapshot.forEach(doc => { const t = { id: doc.id, ...doc.data() }; if (!transactions[t.date]) { transactions[t.date] = []; } transactions[t.date].push(t); });
                 renderAll();
             });
         }
+        async function handleFormSubmit(e) { e.preventDefault(); if (!currentUserId) return; const date = transactionDateInput.value; const id = transactionIdInput.value; const description = descriptionInput.value; let amount; let hours = null; let source = null; if (currentTransactionType === 'income') { source = document.querySelector('input[name="income-source"]:checked').value; if(source === 'work') { hours = parseFloat(hoursInput.value); const rate = parseFloat(settings.hourlyRate); if (!rate || rate <= 0) { alert('Please set your hourly rate in Settings.'); return; } if (isNaN(hours) || hours <= 0) { alert('Please enter valid hours worked.'); return; } amount = hours * rate; } else { amount = parseFloat(amountInput.value); } } else { amount = parseFloat(amountInput.value); } if (isNaN(amount) || amount <= 0) { alert('Please enter a valid amount.'); return; } const newTransaction = { date, description, amount, type: currentTransactionType, hours, source, }; const transCollectionRef = collection(db, 'users', currentUserId, 'transactions'); if (id) { const docRef = doc(transCollectionRef, id); await updateDoc(docRef, newTransaction); } else { await addDoc(transCollectionRef, newTransaction); } closeModal(); }
+        async function handleDelete() { if (!currentUserId) return; const id = transactionIdInput.value; if (confirm('Are you sure you want to delete this transaction?')) { const docRef = doc(db, 'users', currentUserId, 'transactions', id); await deleteDoc(docRef); closeModal(); } }
 
-        async function handleFormSubmit(e) {
+        // --- RECURRING EXPENSE LOGIC ---
+        recurringForm.addEventListener('submit', (e) => {
             e.preventDefault();
-            if (!currentUserId) return;
+            const description = recurringDescriptionInput.value;
+            const amount = parseFloat(recurringAmountInput.value);
+            const id = recurringIdInput.value || Date.now().toString();
 
-            const date = transactionDateInput.value;
-            const id = transactionIdInput.value;
-            const description = descriptionInput.value;
-            let amount;
-            let hours = null;
-            let source = null;
-
-            if (currentTransactionType === 'income') {
-                source = document.querySelector('input[name="income-source"]:checked').value;
-                if(source === 'work') {
-                    hours = parseFloat(hoursInput.value);
-                    const rate = parseFloat(settings.hourlyRate);
-                    if (!rate || rate <= 0) { alert('Please set your hourly rate in Settings.'); return; }
-                    if (isNaN(hours) || hours <= 0) { alert('Please enter valid hours worked.'); return; }
-                    amount = hours * rate;
-                } else {
-                    amount = parseFloat(amountInput.value);
-                }
+            if (!description || isNaN(amount) || amount <= 0) {
+                alert('Please enter a valid description and amount.');
+                return;
+            }
+            
+            const existingIndex = settings.recurringExpenses.findIndex(item => item.id === id);
+            if (existingIndex > -1) {
+                settings.recurringExpenses[existingIndex] = { id, description, amount };
             } else {
-                amount = parseFloat(amountInput.value);
+                settings.recurringExpenses.push({ id, description, amount });
             }
 
-            if (isNaN(amount) || amount <= 0) { alert('Please enter a valid amount.'); return; }
+            saveSettings().then(() => {
+                renderAll();
+                recurringForm.reset();
+                recurringIdInput.value = '';
+                addRecurringBtn.textContent = 'Add Expense';
+            });
+        });
 
-            const newTransaction = {
-                date,
-                description,
-                amount,
-                type: currentTransactionType,
-                hours,
-                source,
-            };
-
-            const transCollectionRef = collection(db, 'users', currentUserId, 'transactions');
-            if (id) {
-                const docRef = doc(transCollectionRef, id);
-                await updateDoc(docRef, newTransaction);
-            } else {
-                await addDoc(transCollectionRef, newTransaction);
+        function renderRecurringExpenses() {
+            recurringExpensesList.innerHTML = '';
+            if (!settings.recurringExpenses || settings.recurringExpenses.length === 0) {
+                recurringExpensesList.innerHTML = `<p class="text-sm text-gray-500 text-center">No distributed expenses added yet.</p>`;
+                return;
             }
+            settings.recurringExpenses.forEach(item => {
+                const div = document.createElement('div');
+                div.className = 'flex justify-between items-center bg-gray-50 p-2 rounded-md';
+                div.innerHTML = `
+                    <div class="flex-1">
+                        <p class="font-medium text-gray-800">${item.description}</p>
+                        <p class="text-sm text-gray-600">€${item.amount.toFixed(2)} / month</p>
+                    </div>
+                    <div class="flex space-x-2">
+                        <button class="edit-recurring-btn text-blue-500 hover:text-blue-700" data-id="${item.id}">Edit</button>
+                        <button class="delete-recurring-btn text-red-500 hover:text-red-700" data-id="${item.id}">Del</button>
+                    </div>`;
+                recurringExpensesList.appendChild(div);
+            });
 
-            closeModal();
-        }
+            document.querySelectorAll('.edit-recurring-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const id = btn.dataset.id;
+                    const item = settings.recurringExpenses.find(i => i.id === id);
+                    if (item) {
+                        recurringDescriptionInput.value = item.description;
+                        recurringAmountInput.value = item.amount;
+                        recurringIdInput.value = item.id;
+                        addRecurringBtn.textContent = 'Update Expense';
+                    }
+                });
+            });
 
-        async function handleDelete() {
-            if (!currentUserId) return;
-            const id = transactionIdInput.value;
-            if (confirm('Are you sure you want to delete this transaction?')) {
-                const docRef = doc(db, 'users', currentUserId, 'transactions', id);
-                await deleteDoc(docRef);
-                closeModal();
-            }
+            document.querySelectorAll('.delete-recurring-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const id = btn.dataset.id;
+                    settings.recurringExpenses = settings.recurringExpenses.filter(i => i.id !== id);
+                    saveSettings().then(() => renderAll());
+                });
+            });
         }
 
         // --- UI & RENDERING LOGIC ---
-        
         function renderAll() {
             renderCalendar();
             updateSummaryAndCashFlow();
+            renderRecurringExpenses();
         }
+        function openModal(date, id = null) { modal.classList.add('active'); transactionForm.reset(); transactionDateInput.value = date; deleteBtn.classList.add('hidden'); if (id) { modalTitle.textContent = 'Edit Transaction'; const transaction = transactions[date].find(t => t.id === id); if (transaction) { transactionIdInput.value = id; descriptionInput.value = transaction.description; amountInput.value = transaction.amount; if(transaction.hours) hoursInput.value = transaction.hours; setTransactionType(transaction.type); if(transaction.type === 'income'){ const source = transaction.source || (transaction.hours ? 'work' : 'other'); document.querySelector(`input[name="income-source"][value="${source}"]`).checked = true; toggleIncomeFields(); } deleteBtn.classList.remove('hidden'); } } else { modalTitle.textContent = `Add Transaction for ${dayjs(date).format('MMMM D, YYYY')}`; transactionIdInput.value = ''; setTransactionType('expense'); } }
+        function renderCalendar() { calendarBody.innerHTML = ''; const month = currentDate.month(); const year = currentDate.year(); currentMonthYear.textContent = currentDate.format('MMMM YYYY'); const firstDayOfMonth = dayjs().year(year).month(month).startOf('month').day(); const daysInMonth = currentDate.daysInMonth(); const prevMonth = currentDate.subtract(1, 'month'); const daysInPrevMonth = prevMonth.daysInMonth(); for (let i = firstDayOfMonth; i > 0; i--) { const day = daysInPrevMonth - i + 1; const date = prevMonth.date(day).format('YYYY-MM-DD'); calendarBody.innerHTML += createDayCell(day, date, true); } for (let i = 1; i <= daysInMonth; i++) { const date = dayjs().year(year).month(month).date(i).format('YYYY-MM-DD'); calendarBody.innerHTML += createDayCell(i, date, false); } const totalCells = firstDayOfMonth + daysInMonth; const nextMonthDays = (7 - (totalCells % 7)) % 7; const nextMonthDate = currentDate.add(1, 'month'); for (let i = 1; i <= nextMonthDays; i++) { const date = nextMonthDate.date(i).format('YYYY-MM-DD'); calendarBody.innerHTML += createDayCell(i, date, true); } addCalendarEventListeners(); renderTransactionsOnCalendar(); }
+        function createDayCell(day, date, isOtherMonth) { const today = dayjs().format('YYYY-MM-DD'); let dayClass = 'calendar-day relative p-2 border-r border-b border-gray-200 transition-colors duration-200'; if (isOtherMonth) dayClass += ' other-month'; else dayClass += ' hover:bg-gray-50 cursor-pointer'; const dayNumberHtml = date === today ? `<div class="absolute top-1 right-1 text-xs sm:text-sm bg-indigo-600 text-white rounded-full h-6 w-6 flex items-center justify-center font-semibold">${day}</div>` : `<div class="text-xs sm:text-sm text-right">${day}</div>`; return `<div class="${dayClass}" data-date="${date}">${dayNumberHtml}<div class="transaction-list mt-8 text-xs space-y-1"></div></div>`; }
+        function renderTransactionsOnCalendar() { document.querySelectorAll('.transaction-item').forEach(el => el.remove()); for (const date in transactions) { const dayCell = document.querySelector(`.calendar-day[data-date="${date}"]`); if (dayCell) { const transactionList = dayCell.querySelector('.transaction-list'); transactions[date].forEach(t => { const item = document.createElement('div'); const fullText = `${t.description}: €${t.amount.toFixed(2)}`; item.className = `transaction-item p-1 rounded-md text-white ${t.type === 'income' ? 'bg-green-500' : 'bg-red-500'}`; item.textContent = fullText; item.title = fullText; item.dataset.id = t.id; item.dataset.date = date; item.addEventListener('click', (e) => { e.stopPropagation(); openModal(date, t.id); }); transactionList.appendChild(item); }); } } }
         
-        function openModal(date, id = null) {
-            modal.classList.add('active');
-            transactionForm.reset();
-            transactionDateInput.value = date;
-            deleteBtn.classList.add('hidden');
-            
-            if (id) {
-                modalTitle.textContent = 'Edit Transaction';
-                const transaction = transactions[date].find(t => t.id === id);
-                if (transaction) {
-                    transactionIdInput.value = id;
-                    descriptionInput.value = transaction.description;
-                    amountInput.value = transaction.amount;
-                    if(transaction.hours) hoursInput.value = transaction.hours;
-                    setTransactionType(transaction.type);
-
-                    if(transaction.type === 'income'){
-                        const source = transaction.source || (transaction.hours ? 'work' : 'other');
-                        document.querySelector(`input[name="income-source"][value="${source}"]`).checked = true;
-                        toggleIncomeFields();
-                    }
-                    
-                    deleteBtn.classList.remove('hidden');
-                }
-            } else {
-                modalTitle.textContent = `Add Transaction for ${dayjs(date).format('MMMM D, YYYY')}`;
-                transactionIdInput.value = '';
-                setTransactionType('expense');
-            }
-        }
-        
-        function renderCalendar() {
-            calendarBody.innerHTML = '';
-            const month = currentDate.month();
-            const year = currentDate.year();
-            currentMonthYear.textContent = currentDate.format('MMMM YYYY');
-            const firstDayOfMonth = dayjs().year(year).month(month).startOf('month').day();
-            const daysInMonth = currentDate.daysInMonth();
-            const prevMonth = currentDate.subtract(1, 'month');
-            const daysInPrevMonth = prevMonth.daysInMonth();
-            for (let i = firstDayOfMonth; i > 0; i--) {
-                const day = daysInPrevMonth - i + 1;
-                const date = prevMonth.date(day).format('YYYY-MM-DD');
-                calendarBody.innerHTML += createDayCell(day, date, true);
-            }
-            for (let i = 1; i <= daysInMonth; i++) {
-                const date = dayjs().year(year).month(month).date(i).format('YYYY-MM-DD');
-                calendarBody.innerHTML += createDayCell(i, date, false);
-            }
-            const totalCells = firstDayOfMonth + daysInMonth;
-            const nextMonthDays = (7 - (totalCells % 7)) % 7;
-            const nextMonthDate = currentDate.add(1, 'month');
-            for (let i = 1; i <= nextMonthDays; i++) {
-                const date = nextMonthDate.date(i).format('YYYY-MM-DD');
-                calendarBody.innerHTML += createDayCell(i, date, true);
-            }
-            addCalendarEventListeners();
-            renderTransactionsOnCalendar();
-        }
-
-        function createDayCell(day, date, isOtherMonth) {
-            const today = dayjs().format('YYYY-MM-DD');
-            let dayClass = 'calendar-day relative p-2 border-r border-b border-gray-200 transition-colors duration-200';
-            if (isOtherMonth) dayClass += ' other-month';
-            else dayClass += ' hover:bg-gray-50 cursor-pointer';
-
-            const dayNumberHtml = date === today ? 
-                `<div class="absolute top-1 right-1 text-xs sm:text-sm bg-indigo-600 text-white rounded-full h-6 w-6 flex items-center justify-center font-semibold">${day}</div>` :
-                `<div class="text-xs sm:text-sm text-right">${day}</div>`;
-
-            return `<div class="${dayClass}" data-date="${date}">${dayNumberHtml}<div class="transaction-list mt-8 text-xs space-y-1"></div></div>`;
-        }
-        
-        function renderTransactionsOnCalendar() {
-            document.querySelectorAll('.transaction-item').forEach(el => el.remove());
-            for (const date in transactions) {
-                const dayCell = document.querySelector(`.calendar-day[data-date="${date}"]`);
-                if (dayCell) {
-                    const transactionList = dayCell.querySelector('.transaction-list');
-                    transactions[date].forEach(t => {
-                        const item = document.createElement('div');
-                        const fullText = `${t.description}: €${t.amount.toFixed(2)}`;
-                        item.className = `transaction-item p-1 rounded-md text-white ${t.type === 'income' ? 'bg-green-500' : 'bg-red-500'}`;
-                        item.textContent = fullText;
-                        item.title = fullText; // Add full text as a tooltip
-                        item.dataset.id = t.id;
-                        item.dataset.date = date;
-                        item.addEventListener('click', (e) => { e.stopPropagation(); openModal(date, t.id); });
-                        transactionList.appendChild(item);
-                    });
-                }
-            }
-        }
-
         function updateSummaryAndCashFlow() {
             const month = currentDate.month();
             const year = currentDate.year();
+            const daysInCurrentMonth = currentDate.daysInMonth();
             let totalIncome = 0;
             let totalExpenses = 0;
+            
+            // Calculate transaction-based income/expenses
             Object.values(transactions).flat().filter(t => dayjs(t.date).month() === month && dayjs(t.date).year() === year).forEach(t => {
                 if (t.type === 'income') totalIncome += t.amount;
                 else totalExpenses += t.amount;
             });
+            
+            // Add recurring expenses to the monthly total
+            const totalRecurring = (settings.recurringExpenses || []).reduce((acc, item) => acc + item.amount, 0);
+            totalExpenses += totalRecurring;
+
             document.getElementById('summary-income').textContent = `€${totalIncome.toFixed(2)}`;
             document.getElementById('summary-expenses').textContent = `€${totalExpenses.toFixed(2)}`;
             const net = totalIncome - totalExpenses;
             const netSpan = document.getElementById('summary-net');
             netSpan.textContent = `€${net.toFixed(2)}`;
             netSpan.className = `font-bold ${net >= 0 ? 'text-green-600' : 'text-red-600'}`;
-            let runningBalance = parseFloat(settings.initialBalance) || 0;
-            const sortedTransactions = Object.values(transactions).flat().sort((a,b) => dayjs(a.date).isAfter(dayjs(b.date)) ? 1 : -1);
             
+            // Calculate cash flow for TODAY
+            let runningBalance = parseFloat(settings.initialBalance) || 0;
+            const dailyRecurringCost = totalRecurring / daysInCurrentMonth;
+            const daysPassedThisMonth = dayjs().date();
+            
+            // Subtract distributed cost up to today
+            runningBalance -= (daysPassedThisMonth * dailyRecurringCost);
+
+            // Add/subtract transactions up to today
+            const sortedTransactions = Object.values(transactions).flat().sort((a,b) => dayjs(a.date).isAfter(dayjs(b.date)) ? 1 : -1);
             for (const t of sortedTransactions) {
-                if (dayjs(t.date).isAfter(dayjs(), 'day')) continue; // Don't include future transactions in today's balance
+                if (dayjs(t.date).isAfter(dayjs(), 'day')) continue; 
                 runningBalance += t.type === 'income' ? t.amount : -t.amount;
             }
 
@@ -475,74 +391,26 @@
             cashFlowSpan.className = `font-bold ${runningBalance >= 0 ? 'text-gray-800' : 'text-red-600'}`;
         }
         
-        function closeModal() { modal.classList.remove('active'); }
-
-        function addCalendarEventListeners() {
-            document.querySelectorAll('.calendar-day:not(.other-month)').forEach(dayCell => {
-                dayCell.addEventListener('click', (e) => {
-                    if (e.target.closest('.transaction-item')) return;
-                    openModal(dayCell.dataset.date);
-                    showDailyBreakdown(dayCell.dataset.date);
-                });
-                dayCell.addEventListener('mouseenter', (e) => showDailyBreakdown(dayCell.dataset.date));
-            });
-        }
-        
-        function setTransactionType(type) {
-            currentTransactionType = type;
-            if (type === 'income') {
-                typeIncomeBtn.classList.add('bg-green-500', 'text-white');
-                typeIncomeBtn.classList.remove('bg-white');
-                typeExpenseBtn.classList.remove('bg-red-500', 'text-white');
-                typeExpenseBtn.classList.add('bg-white');
-                incomeSourceGroup.classList.remove('hidden');
-                document.querySelector('input[name="income-source"][value="other"]').checked = true;
-                toggleIncomeFields();
-            } else { // 'expense'
-                typeExpenseBtn.classList.add('bg-red-500', 'text-white');
-                typeExpenseBtn.classList.remove('bg-white');
-                typeIncomeBtn.classList.remove('bg-green-500', 'text-white');
-                typeIncomeBtn.classList.add('bg-white');
-                incomeSourceGroup.classList.add('hidden');
-                hoursGroup.classList.add('hidden');
-                amountGroup.classList.remove('hidden');
-                amountInput.required = true;
-                hoursInput.required = false;
-            }
-        }
-        
-        function toggleIncomeFields() {
-            const selectedSource = document.querySelector('input[name="income-source"]:checked').value;
-            if (selectedSource === 'work') {
-                hoursGroup.classList.remove('hidden');
-                amountGroup.classList.add('hidden');
-                amountInput.required = false;
-                hoursInput.required = true;
-            } else { // 'other'
-                hoursGroup.classList.add('hidden');
-                amountGroup.classList.remove('hidden');
-                amountInput.required = true;
-                hoursInput.required = false;
-            }
-        }
-        
-        function updateCalculatedIncome() {
-            const hours = parseFloat(hoursInput.value) || 0;
-            const rate = parseFloat(settings.hourlyRate) || 0;
-            calculatedIncomeSpan.textContent = `€${(hours * rate).toFixed(2)}`;
-        }
-
         function showDailyBreakdown(dateStr) {
+            const date = dayjs(dateStr);
+            const daysInMonth = date.daysInMonth();
             const breakdownDiv = document.getElementById('daily-breakdown');
             const contentDiv = document.getElementById('daily-breakdown-content');
-            document.getElementById('daily-breakdown-date').textContent = dayjs(dateStr).format('MMMM D, YYYY');
+            document.getElementById('daily-breakdown-date').textContent = date.format('MMMM D, YYYY');
             breakdownDiv.classList.remove('hidden');
             contentDiv.innerHTML = '';
+            
             let runningBalance = parseFloat(settings.initialBalance) || 0;
+            const totalRecurring = (settings.recurringExpenses || []).reduce((acc, item) => acc + item.amount, 0);
+            const dailyRecurringCost = totalRecurring / daysInMonth;
+            
+            // Subtract distributed cost up to the selected day
+            runningBalance -= (date.date() * dailyRecurringCost);
+            
+            // Add/subtract transactions up to the selected day
             const sortedTransactions = Object.values(transactions).flat().sort((a,b) => dayjs(a.date).isAfter(dayjs(b.date)) ? 1 : -1);
-
             for (const t of sortedTransactions) {
-                if (dayjs(t.date).isAfter(dayjs(dateStr), 'day')) break;
+                if (dayjs(t.date).isAfter(date, 'day')) break;
                 runningBalance += t.type === 'income' ? t.amount : -t.amount;
             }
             
@@ -551,22 +419,23 @@
             if (dailyTransactions.length > 0) {
                 const list = document.createElement('ul');
                 list.className = 'mt-2 space-y-1 text-sm';
-                dailyTransactions.forEach(t => {
-                   const item = document.createElement('li');
-                   item.className = 'flex justify-between items-center';
-                   item.innerHTML = `<span>${t.description}</span> <span class="${t.type === 'income' ? 'text-green-600' : 'text-red-600'}">${t.type === 'income' ? '+' : '-'}${t.amount.toFixed(2)}</span>`;
-                   list.appendChild(item);
-                });
+                dailyTransactions.forEach(t => { const item = document.createElement('li'); item.className = 'flex justify-between items-center'; item.innerHTML = `<span>${t.description}</span> <span class="${t.type === 'income' ? 'text-green-600' : 'text-red-600'}">${t.type === 'income' ? '+' : '-'}${t.amount.toFixed(2)}</span>`; list.appendChild(item); });
                 contentDiv.appendChild(list);
             } else {
-                 contentDiv.innerHTML += '<p class="text-sm text-gray-500 mt-2">No transactions for this day.</p>';
+                 contentDiv.innerHTML += '<p class="text-sm text-gray-500 mt-2">No specific transactions for this day.</p>';
             }
         }
 
-        // Event Listeners
+        function closeModal() { modal.classList.remove('active'); }
+        function addCalendarEventListeners() { document.querySelectorAll('.calendar-day:not(.other-month)').forEach(dayCell => { dayCell.addEventListener('click', (e) => { if (e.target.closest('.transaction-item')) return; openModal(dayCell.dataset.date); showDailyBreakdown(dayCell.dataset.date); }); dayCell.addEventListener('mouseenter', (e) => showDailyBreakdown(dayCell.dataset.date)); }); }
+        function setTransactionType(type) { currentTransactionType = type; if (type === 'income') { typeIncomeBtn.classList.add('bg-green-500', 'text-white'); typeIncomeBtn.classList.remove('bg-white'); typeExpenseBtn.classList.remove('bg-red-500', 'text-white'); typeExpenseBtn.classList.add('bg-white'); incomeSourceGroup.classList.remove('hidden'); document.querySelector('input[name="income-source"][value="other"]').checked = true; toggleIncomeFields(); } else { typeExpenseBtn.classList.add('bg-red-500', 'text-white'); typeExpenseBtn.classList.remove('bg-white'); typeIncomeBtn.classList.remove('bg-green-500', 'text-white'); typeIncomeBtn.classList.add('bg-white'); incomeSourceGroup.classList.add('hidden'); hoursGroup.classList.add('hidden'); amountGroup.classList.remove('hidden'); amountInput.required = true; hoursInput.required = false; } }
+        function toggleIncomeFields() { const selectedSource = document.querySelector('input[name="income-source"]:checked').value; if (selectedSource === 'work') { hoursGroup.classList.remove('hidden'); amountGroup.classList.add('hidden'); amountInput.required = false; hoursInput.required = true; } else { hoursGroup.classList.add('hidden'); amountGroup.classList.remove('hidden'); amountInput.required = true; hoursInput.required = false; } }
+        function updateCalculatedIncome() { const hours = parseFloat(hoursInput.value) || 0; const rate = parseFloat(settings.hourlyRate) || 0; calculatedIncomeSpan.textContent = `€${(hours * rate).toFixed(2)}`; }
+        
+        // --- INITIAL EVENT LISTENERS ---
         prevMonthBtn.addEventListener('click', () => { currentDate = currentDate.subtract(1, 'month'); renderAll(); });
         nextMonthBtn.addEventListener('click', () => { currentDate = currentDate.add(1, 'month'); renderAll(); });
-        saveSettingsBtn.addEventListener('click', saveSettings);
+        saveSettingsBtn.addEventListener('click', () => { saveSettings().then(() => { alert('Settings Saved!'); renderAll(); }); });
         typeIncomeBtn.addEventListener('click', () => setTransactionType('income'));
         typeExpenseBtn.addEventListener('click', () => setTransactionType('expense'));
         hoursInput.addEventListener('input', updateCalculatedIncome);
@@ -580,6 +449,8 @@
     </script>
 </body>
 </html>
+
+
 
 
 
