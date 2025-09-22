@@ -21,7 +21,7 @@
             min-width: 0; /* Prevents grid blowout from long content */
         }
         .transaction-list {
-            overflow: hidden; /* NEW: Forcefully contains the transaction items */
+            overflow: hidden; /* Forcefully contains the transaction items */
         }
         .transaction-item {
             white-space: nowrap;
@@ -350,20 +350,20 @@
         function updateSummaryAndCashFlow() {
             const month = currentDate.month();
             const year = currentDate.year();
-            const daysInCurrentMonth = currentDate.daysInMonth();
             let totalIncome = 0;
             let totalExpenses = 0;
             
-            // Calculate transaction-based income/expenses
+            // Calculate transaction-based income/expenses for the month
             Object.values(transactions).flat().filter(t => dayjs(t.date).month() === month && dayjs(t.date).year() === year).forEach(t => {
                 if (t.type === 'income') totalIncome += t.amount;
                 else totalExpenses += t.amount;
             });
             
-            // Add recurring expenses to the monthly total
+            // Add recurring expenses to the monthly total summary
             const totalRecurring = (settings.recurringExpenses || []).reduce((acc, item) => acc + item.amount, 0);
             totalExpenses += totalRecurring;
 
+            // Update Monthly Summary UI
             document.getElementById('summary-income').textContent = `€${totalIncome.toFixed(2)}`;
             document.getElementById('summary-expenses').textContent = `€${totalExpenses.toFixed(2)}`;
             const net = totalIncome - totalExpenses;
@@ -371,18 +371,13 @@
             netSpan.textContent = `€${net.toFixed(2)}`;
             netSpan.className = `font-bold ${net >= 0 ? 'text-green-600' : 'text-red-600'}`;
             
-            // Calculate cash flow for TODAY
+            // --- CORRECTED Cash Flow Today Calculation ---
+            // This now reflects ACTUAL cash on hand based on real transactions.
             let runningBalance = parseFloat(settings.initialBalance) || 0;
-            const dailyRecurringCost = totalRecurring / daysInCurrentMonth;
-            const daysPassedThisMonth = dayjs().date();
-            
-            // Subtract distributed cost up to today
-            runningBalance -= (daysPassedThisMonth * dailyRecurringCost);
-
-            // Add/subtract transactions up to today
             const sortedTransactions = Object.values(transactions).flat().sort((a,b) => dayjs(a.date).isAfter(dayjs(b.date)) ? 1 : -1);
+            
             for (const t of sortedTransactions) {
-                if (dayjs(t.date).isAfter(dayjs(), 'day')) continue; 
+                if (dayjs(t.date).isAfter(dayjs(), 'day')) continue; // Don't include future transactions
                 runningBalance += t.type === 'income' ? t.amount : -t.amount;
             }
 
@@ -404,10 +399,10 @@
             const totalRecurring = (settings.recurringExpenses || []).reduce((acc, item) => acc + item.amount, 0);
             const dailyRecurringCost = totalRecurring / daysInMonth;
             
-            // Subtract distributed cost up to the selected day
+            // Subtract distributed cost up to the selected day for PROJECTION
             runningBalance -= (date.date() * dailyRecurringCost);
             
-            // Add/subtract transactions up to the selected day
+            // Add/subtract actual transactions up to the selected day
             const sortedTransactions = Object.values(transactions).flat().sort((a,b) => dayjs(a.date).isAfter(dayjs(b.date)) ? 1 : -1);
             for (const t of sortedTransactions) {
                 if (dayjs(t.date).isAfter(date, 'day')) break;
@@ -449,6 +444,9 @@
     </script>
 </body>
 </html>
+
+
+
 
 
 
