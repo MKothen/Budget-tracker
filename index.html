@@ -143,6 +143,7 @@
         let currentUserId = null;
         let unsubscribeTransactions;
         let expenseChart = null;
+        let isLoginMode = true;
 
         const $ = (selector) => document.getElementById(selector);
 
@@ -165,32 +166,19 @@
 
         function updateSummaryAndCashFlow() {
             const month = currentDate.month(), year = currentDate.year();
-            let totalIncome = 0, oneTimeExpenses = 0, goalContributions = 0;
+            let totalIncome = 0;
             const monthlyTransactions = Object.values(transactions).flat().filter(t => dayjs(t.date).month() === month && dayjs(t.date).year() === year);
-            monthlyTransactions.forEach(t => { 
-                if (t.type === 'income') totalIncome += t.amount;
-                else if (t.category === 'one-time') oneTimeExpenses += t.amount;
-                else if (t.category && t.category.startsWith('goal_')) goalContributions += t.amount;
-            });
-            
+            monthlyTransactions.forEach(t => { if (t.type === 'income') totalIncome += t.amount; });
             const totalBudgetedExpenses = (settings.recurringExpenses || []).reduce((acc, item) => acc + item.amount, 0);
-            const totalExpenses = oneTimeExpenses + totalBudgetedExpenses + goalContributions;
-
+            const oneTimeExpenses = monthlyTransactions.filter(t => t.type === 'expense' && t.category === 'one-time').reduce((acc, t) => acc + t.amount, 0);
+            const totalExpenses = totalBudgetedExpenses + oneTimeExpenses;
             $('summary-income').textContent = `€${totalIncome.toFixed(2)}`;
             $('summary-expenses').textContent = `€${totalExpenses.toFixed(2)}`;
             const net = totalIncome - totalExpenses;
-            const netSpan = $('summary-net');
-            netSpan.textContent = `€${net.toFixed(2)}`;
-            netSpan.className = `font-bold ${net >= 0 ? 'text-green-400' : 'text-red-400'}`;
-            
+            const netSpan = $('summary-net'); netSpan.textContent = `€${net.toFixed(2)}`; netSpan.className = `font-bold ${net >= 0 ? 'text-green-400' : 'text-red-400'}`;
             let runningBalance = parseFloat(settings.initialBalance) || 0;
-            Object.values(transactions).flat().sort((a,b) => dayjs(a.date).diff(dayjs(b.date))).forEach(t => {
-                if (dayjs(t.date).isAfter(dayjs(), 'day')) return;
-                runningBalance += t.type === 'income' ? t.amount : -t.amount;
-            });
-            const cashFlowSpan = $('summary-cashflow');
-            cashFlowSpan.textContent = `€${runningBalance.toFixed(2)}`;
-            cashFlowSpan.className = `font-bold ${runningBalance >= 0 ? 'text-gray-200' : 'text-red-400'}`;
+            Object.values(transactions).flat().sort((a,b) => dayjs(a.date).diff(dayjs(b.date))).forEach(t => { if (dayjs(t.date).isAfter(dayjs(), 'day')) return; runningBalance += t.type === 'income' ? t.amount : -t.amount; });
+            const cashFlowSpan = $('summary-cashflow'); cashFlowSpan.textContent = `€${runningBalance.toFixed(2)}`; cashFlowSpan.className = `font-bold ${runningBalance >= 0 ? 'text-gray-200' : 'text-red-400'}`;
         }
         
         function renderExpenseChart() {
@@ -200,30 +188,25 @@
             const expenseData = {};
             monthlyExpenses.forEach(t => {
                 let categoryName = "One-Time";
-                if(t.category !== 'one-time' && !t.category.startsWith('goal_')) {
-                    const budget = settings.recurringExpenses.find(b => b.id === t.category);
-                    if(budget) categoryName = budget.description;
-                } else if (t.category && t.category.startsWith('goal_')) {
-                    const goal = settings.savingsGoals.find(g => g.id === t.category.split('_')[1]);
-                    if(goal) categoryName = `Goal: ${goal.description}`;
-                }
-                if (!expenseData[categoryName]) expenseData[categoryName] = 0;
-                expenseData[categoryName] += t.amount;
+                if(t.category !== 'one-time' && !t.category.startsWith('goal_')) { const budget = settings.recurringExpenses.find(b => b.id === t.category); if(budget) categoryName = budget.description; }
+                else if (t.category && t.category.startsWith('goal_')) { const goal = settings.savingsGoals.find(g => g.id === t.category.split('_')[1]); if(goal) categoryName = `Goal: ${goal.description}`; }
+                if (!expenseData[categoryName]) expenseData[categoryName] = 0; expenseData[categoryName] += t.amount;
             });
             if (expenseChart) expenseChart.destroy();
             expenseChart = new Chart(ctx, { type: 'pie', data: { labels: Object.keys(expenseData), datasets: [{ data: Object.values(expenseData), backgroundColor: ['#8b5cf6', '#ef4444', '#f59e0b', '#10b981', '#3b82f6', '#6366f1'], borderColor: '#1f2937', borderWidth: 2 }] }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { labels: { color: '#d1d5db' } } } } });
         }
         
-        // MODAL & FORM LOGIC
+        // --- MODAL & FORM LOGIC ---
         function setupEventListeners() {
             document.addEventListener('click', e => {
-                if (e.target.closest('.edit-budget-btn')) openBudgetModal(e.target.closest('.edit-budget-btn').dataset.id);
-                if (e.target.closest('.delete-budget-btn')) { const id = e.target.closest('.delete-budget-btn').dataset.id; if(confirm('Delete budget?')){ settings.recurringExpenses = settings.recurringExpenses.filter(i => i.id !== id); saveSettings().then(renderAll); }}
-                if (e.target.closest('.edit-goal-btn')) openGoalModal(e.target.closest('.edit-goal-btn').dataset.id);
-                if (e.target.closest('.delete-goal-btn')) { const id = e.target.closest('.delete-goal-btn').dataset.id; if(confirm('Delete goal?')){ settings.savingsGoals = settings.savingsGoals.filter(i => i.id !== id); saveSettings().then(renderAll); }}
-                if (e.target.closest('.contribute-goal-btn')) openContributeModal(e.target.closest('.contribute-goal-btn').dataset.id);
-                if (e.target.closest('.edit-bill-btn')) openBillModal(e.target.closest('.edit-bill-btn').dataset.id);
-                if (e.target.closest('.delete-bill-btn')) { const id = e.target.closest('.delete-bill-btn').dataset.id; if(confirm('Delete bill?')){ settings.automaticBills = settings.automaticBills.filter(i => i.id !== id); saveSettings().then(renderAll); }}
+                const target = e.target.closest('button'); if(!target) return;
+                if (target.matches('.edit-budget-btn')) openBudgetModal(target.dataset.id);
+                if (target.matches('.delete-budget-btn')) { const id = target.dataset.id; if(confirm('Delete budget?')){ settings.recurringExpenses = settings.recurringExpenses.filter(i => i.id !== id); saveSettings().then(renderAll); }}
+                if (target.matches('.edit-goal-btn')) openGoalModal(target.dataset.id);
+                if (target.matches('.delete-goal-btn')) { const id = target.dataset.id; if(confirm('Delete goal?')){ settings.savingsGoals = settings.savingsGoals.filter(i => i.id !== id); saveSettings().then(renderAll); }}
+                if (target.matches('.contribute-goal-btn')) openContributeModal(target.dataset.id);
+                if (target.matches('.edit-bill-btn')) openBillModal(target.dataset.id);
+                if (target.matches('.delete-bill-btn')) { const id = target.dataset.id; if(confirm('Delete bill?')){ settings.automaticBills = settings.automaticBills.filter(i => i.id !== id); saveSettings().then(renderAll); }}
             });
             $('add-budget-btn').addEventListener('click', () => openBudgetModal()); $('cancel-budget').addEventListener('click', () => $('budget-modal').classList.remove('active')); $('budget-form').addEventListener('submit', handleBudgetSubmit);
             $('add-goal-btn').addEventListener('click', () => openGoalModal()); $('cancel-goal').addEventListener('click', () => $('goal-modal').classList.remove('active')); $('goal-form').addEventListener('submit', handleGoalSubmit);
@@ -236,11 +219,10 @@
             $('auth-toggle').addEventListener('click', (e) => { e.preventDefault(); isLoginMode = !isLoginMode; $('auth-title').textContent = isLoginMode ? 'Login' : 'Sign Up'; $('auth-button').textContent = isLoginMode ? 'Login' : 'Create Account'; $('auth-toggle').textContent = isLoginMode ? 'Need an account? Sign up' : 'Have an account? Login'; $('auth-error').textContent = ''; });
             $('logout-button').addEventListener('click', () => signOut(auth));
         }
-
         function handleTransactionSubmit(e) { e.preventDefault(); const date = $('transaction-date').value, id = $('transaction-id').value, description = $('description').value; let amount; let category = 'one-time', type = 'expense', hours = null, source = null; if ($('type-income').classList.contains('bg-violet-600')) { type = 'income'; source = document.querySelector('input[name="income-source"]:checked').value; if (source === 'work') { hours = parseFloat($('hours').value); amount = hours * (parseFloat(settings.hourlyRate) || 0); } else { amount = parseFloat($('amount').value); } } else { amount = parseFloat($('amount').value); category = $('category').value; } if (!description || isNaN(amount) || amount <= 0) return alert('Invalid input'); const newTransaction = { date, description, amount, type, category, hours, source }; const transCollectionRef = collection(db, 'users', currentUserId, 'transactions'); if (id) updateDoc(doc(transCollectionRef, id), newTransaction); else addDoc(transCollectionRef, newTransaction); $('transaction-modal').classList.remove('active'); }
         async function handleDeleteTransaction() { const id = $('transaction-id').value; if (confirm('Delete transaction?')) { await deleteDoc(doc(db, 'users', currentUserId, 'transactions', id)); $('transaction-modal').classList.remove('active'); }}
         function handleBudgetSubmit(e) { e.preventDefault(); const description = $('budget-description').value, amount = parseFloat($('budget-amount').value), id = $('budget-id').value || Date.now().toString(); if (!description || isNaN(amount) || amount <= 0) return alert('Invalid input'); const idx = settings.recurringExpenses.findIndex(i => i.id === id); if (idx > -1) settings.recurringExpenses[idx] = {id, description, amount}; else settings.recurringExpenses.push({id, description, amount}); saveSettings().then(() => { renderAll(); $('budget-modal').classList.remove('active'); }); }
-        function handleGoalSubmit(e) { e.preventDefault(); const description = $('goal-description').value, amount = parseFloat($('goal-amount').value), id = $('goal-id').value || Date.now().toString(); if (!description || isNaN(amount) || amount <= 0) return alert('Invalid input'); const idx = settings.savingsGoals.findIndex(i => i.id === id); if (idx > -1) settings.savingsGoals[idx].description = description; settings.savingsGoals[idx].target = amount; else settings.savingsGoals.push({id, description, target: amount, saved: 0}); saveSettings().then(() => { renderAll(); $('goal-modal').classList.remove('active'); }); }
+        function handleGoalSubmit(e) { e.preventDefault(); const description = $('goal-description').value, amount = parseFloat($('goal-amount').value), id = $('goal-id').value || Date.now().toString(); if (!description || isNaN(amount) || amount <= 0) return alert('Invalid input'); const idx = settings.savingsGoals.findIndex(i => i.id === id); if (idx > -1) { settings.savingsGoals[idx].description = description; settings.savingsGoals[idx].target = amount; } else settings.savingsGoals.push({id, description, target: amount, saved: 0}); saveSettings().then(() => { renderAll(); $('goal-modal').classList.remove('active'); }); }
         function handleBillSubmit(e) { e.preventDefault(); const description = $('bill-description').value, amount = parseFloat($('bill-amount').value), day = parseInt($('bill-day').value), id = $('bill-id').value || Date.now().toString(); if (!description || isNaN(amount) || amount <= 0 || isNaN(day) || day < 1 || day > 31) return alert('Invalid input'); const idx = settings.automaticBills.findIndex(i => i.id === id); if (idx > -1) settings.automaticBills[idx] = {id, description, amount, day}; else settings.automaticBills.push({id, description, amount, day}); saveSettings().then(() => { renderAll(); $('bill-modal').classList.remove('active'); }); }
         function handleContributeSubmit(e) { e.preventDefault(); const goalId = $('contribute-goal-id').value, amount = parseFloat($('contribute-amount').value); if (isNaN(amount) || amount <= 0) return alert('Invalid amount'); const goal = settings.savingsGoals.find(g => g.id === goalId); if (!goal) return; const newTransaction = { date: dayjs().format('YYYY-MM-DD'), description: `Contribution to ${goal.description}`, amount, type: 'expense', category: `goal_${goalId}` }; addDoc(collection(db, 'users', currentUserId, 'transactions'), newTransaction); $('contribute-modal').classList.remove('active'); }
         function openModal(date, id = null) { $('transaction-modal').classList.add('active'); $('transaction-form').reset(); $('transaction-date').value = date; $('delete-transaction').classList.add('hidden'); let type = 'expense', category = 'one-time'; if (id) { const t = Object.values(transactions).flat().find(tr => tr.id === id); if (t) { $('modal-title').textContent = 'Edit Transaction'; $('transaction-id').value = id; $('description').value = t.description; $('amount').value = t.amount; type = t.type; category = t.category; $('delete-transaction').classList.remove('hidden'); } } else { $('modal-title').textContent = `Add Transaction for ${dayjs(date).format('MMMM D, YYYY')}`; } setTransactionType(type, category); }
@@ -254,12 +236,17 @@
         async function addAutomaticBillsForMonth(date) { if(!currentUserId || !settings.automaticBills) return; const month = date.month(), year = date.year(); for(const bill of settings.automaticBills) { let billDay = bill.day > date.daysInMonth() ? date.daysInMonth() : bill.day; const billDate = date.date(billDay).format('YYYY-MM-DD'); const desc = `Auto-Bill: ${bill.description}`; const q = query(collection(db, 'users', currentUserId, 'transactions'), where("date", "==", billDate), where("description", "==", desc)); const existing = await getDocs(q); if(existing.empty) { addDoc(collection(db, 'users', currentUserId, 'transactions'), { date: billDate, description: desc, amount: bill.amount, type: 'expense', category: 'one-time' }); } } }
         function renderRecurringExpenses() { const list = $('recurring-expenses-list'); list.innerHTML = ''; if (!settings.recurringExpenses || !settings.recurringExpenses.length) return list.innerHTML = `<p class="text-sm text-center text-gray-400">No budgets set.</p>`; const monthlyTransactions = Object.values(transactions).flat().filter(t => dayjs(t.date).month() === currentDate.month() && dayjs(t.date).year() === currentDate.year()); settings.recurringExpenses.forEach(b => { const spent = monthlyTransactions.filter(t => t.category === b.id).reduce((acc, t) => acc + t.amount, 0); const p = b.amount > 0 ? (spent / b.amount) * 100 : 0; const c = p > 100 ? 'bg-red-500' : p > 75 ? 'bg-yellow-500' : 'bg-green-500'; list.innerHTML += `<div class="bg-slate-800 p-3 rounded-md"><div class="flex justify-between items-center mb-2"><p class="font-medium">${b.description}</p><div class="flex space-x-2"><button class="edit-budget-btn text-sm font-medium text-violet-400 hover:text-violet-300" data-id="${b.id}">Edit</button><button class="delete-budget-btn text-sm font-medium text-red-400 hover:text-red-300" data-id="${b.id}">Del</button></div></div><div class="text-sm text-gray-400 mb-2"><span>Spent: €${spent.toFixed(2)}</span> / <span>€${b.amount.toFixed(2)}</span></div><div class="progress-bar h-2 w-full"><div class="progress-bar-inner ${c}" style="width: ${Math.min(p, 100)}%;"></div></div></div>`; }); }
         function renderSavingsGoals() { const list = $('savings-goals-list'); list.innerHTML = ''; if (!settings.savingsGoals || !settings.savingsGoals.length) return list.innerHTML = `<p class="text-sm text-center text-gray-400">No goals set.</p>`; const allTransactions = Object.values(transactions).flat(); settings.savingsGoals.forEach(g => { const saved = allTransactions.filter(t => t.category === `goal_${g.id}`).reduce((acc, t) => acc + t.amount, 0); const p = g.target > 0 ? (saved / g.target) * 100 : 0; list.innerHTML += `<div class="bg-slate-800 p-3 rounded-md"><div class="flex justify-between items-center mb-2"><p class="font-medium">${g.description}</p><div class="flex space-x-2"><button class="contribute-goal-btn text-sm font-medium text-green-400 hover:text-green-300" data-id="${g.id}">Add</button><button class="edit-goal-btn text-sm font-medium text-violet-400 hover:text-violet-300" data-id="${g.id}">Edit</button><button class="delete-goal-btn text-sm font-medium text-red-400 hover:text-red-300" data-id="${g.id}">Del</button></div></div><div class="text-sm text-gray-400 mb-2"><span>Saved: €${saved.toFixed(2)}</span> / <span>€${g.target.toFixed(2)}</span></div><div class="progress-bar h-2 w-full"><div class="progress-bar-inner bg-blue-500" style="width: ${Math.min(p, 100)}%;"></div></div></div>`; }); }
-        function renderAutomaticBills() { const list = $('automatic-bills-list'); list.innerHTML = ''; if (!settings.automaticBills || !settings.automaticBills.length) return list.innerHTML = `<p class="text-sm text-center text-gray-400">No bills set.</p>`; settings.automaticBills.forEach(b => { list.innerHTML += `<div class="flex justify-between items-center bg-slate-800 p-2 rounded-md text-sm"><p>${b.description} - €${b.amount} on the ${b.day}th</p><div class="flex space-x-2"><button class="edit-bill-btn text-sm font-medium text-violet-400 hover:text-violet-300" data-id="${b.id}">Edit</button><button class="delete-bill-btn text-sm font-medium text-red-400 hover:text-red-300" data-id="${b.id}">Del</button></div></div>`; }); }
+        function renderAutomaticBills() { const list = $('automatic-bills-list'); list.innerHTML = ''; if (!settings.automaticBills || !settings.automaticBills.length) return list.innerHTML = `<p class="text-sm text-center text-gray-400">No bills set.</p>`; settings.automaticBills.forEach(b => { list.innerHTML += `<div class="flex justify-between items-center bg-slate-800 p-2 rounded-md text-sm"><p>${b.description} - €${b.amount} on day ${b.day}</p><div class="flex space-x-2"><button class="edit-bill-btn text-sm font-medium text-violet-400 hover:text-violet-300" data-id="${b.id}">Edit</button><button class="delete-bill-btn text-sm font-medium text-red-400 hover:text-red-300" data-id="${b.id}">Del</button></div></div>`; }); }
 
         setupEventListeners();
+        addCalendarEventListeners();
     </script>
 </body>
 </html>
+
+
+
+
 
 
 
