@@ -49,7 +49,7 @@
             <form id="auth-form">
                 <div class="mb-4"><label for="email" class="block text-sm font-medium text-gray-400">Email</label><input type="email" id="email" class="input-field mt-1 block w-full px-3 py-2 rounded-md shadow-sm" required></div>
                 <div class="mb-6"><label for="password" class="block text-sm font-medium text-gray-400">Password</label><input type="password" id="password" class="input-field mt-1 block w-full px-3 py-2 rounded-md shadow-sm" required></div>
-                <button type="submit" id="auth-button" class="w-full btn-primary py-2 px-4 rounded-md transition-colors">Login</button>
+                <button type="submit" class="w-full btn-primary py-2 px-4 rounded-md transition-colors">Login</button>
             </form>
             <p id="auth-error" class="text-red-400 text-sm mt-4 text-center"></p>
             <p class="text-sm text-center mt-4"><a href="#" id="auth-toggle" class="font-medium text-violet-400 hover:text-violet-300">Need an account? Sign up</a></p>
@@ -150,7 +150,7 @@
 
         const $ = (selector) => document.getElementById(selector);
 
-        // --- RENDER FUNCTIONS ---
+        // --- RENDER FUNCTIONS (UI LOGIC) ---
         async function render() {
             if (!state.user) return;
             await addAutomaticBillsForMonth();
@@ -180,8 +180,7 @@
             const day = dayjs(dateStr).date();
             const today = dayjs().format('YYYY-MM-DD');
             let dayClass = 'calendar-day relative p-2 border-r border-b border-slate-700';
-            if (!isOtherMonth) dayClass += ' hover:bg-slate-700 cursor-pointer';
-            else dayClass += ' other-month';
+            if (!isOtherMonth) dayClass += ' hover:bg-slate-700 cursor-pointer'; else dayClass += ' other-month';
             const dayNumberHtml = dateStr === today ? `<div class="absolute top-1 right-1 text-xs sm:text-sm bg-violet-600 text-white rounded-full h-6 w-6 flex items-center justify-center font-semibold">${day}</div>` : `<div class="text-xs sm:text-sm text-right text-gray-400">${day}</div>`;
             return `<div class="${dayClass}" data-date="${dateStr}" data-action="add-transaction">${dayNumberHtml}<div class="transaction-list mt-8 text-xs space-y-1"></div></div>`;
         }
@@ -233,9 +232,7 @@
         document.addEventListener('click', (e) => {
             const target = e.target.closest('[data-action]');
             if (!target) return;
-
             const { action, id, date, type } = target.dataset;
-
             switch(action) {
                 case 'logout': signOut(auth); break;
                 case 'prev-month': state.currentDate = state.currentDate.subtract(1, 'month'); render(); break;
@@ -271,50 +268,19 @@
             }
         });
         
-        // --- MODAL & FORM SUBMISSION LOGIC ---
+        // --- MODAL & FORM LOGIC ---
         function openTransactionModal(date, id=null) {
             const form = $('transaction-form'); form.reset();
             $('transaction-date').value = date; $('transaction-id').value = id || '';
             let type = 'expense', category = 'one-time';
             if (id) {
                 const t = state.transactions[date]?.find(tx => tx.id === id);
-                if (t) {
-                    $('modal-title').textContent = 'Edit Transaction';
-                    $('description').value = t.description; $('amount').value = t.amount;
-                    type = t.type; category = t.category;
-                    $('delete-transaction').classList.remove('hidden');
-                }
-            } else {
-                $('modal-title').textContent = `Add Transaction for ${dayjs(date).format('MMMM D, YYYY')}`;
-                $('delete-transaction').classList.add('hidden');
-            }
+                if (t) { $('modal-title').textContent = 'Edit Transaction'; $('description').value = t.description; $('amount').value = t.amount; type = t.type; category = t.category; $('delete-transaction').classList.remove('hidden'); }
+            } else { $('modal-title').textContent = `Add Transaction for ${dayjs(date).format('MMMM D, YYYY')}`; $('delete-transaction').classList.add('hidden'); }
             setTransactionTypeUI(type, category);
             $('transaction-modal').classList.add('active');
         }
-        async function handleTransactionSubmit(e) {
-            const form = e.target;
-            const id = form['transaction-id'].value;
-            const date = form['transaction-date'].value;
-            const description = form['description'].value;
-            let amount = parseFloat(form['amount'].value);
-            let type = $('type-income').classList.contains('bg-violet-600') ? 'income' : 'expense';
-            let category = 'one-time', hours = null, source = null;
-            if (type === 'income') {
-                source = form['income-source'].value;
-                if(source === 'work') {
-                    hours = parseFloat(form['hours'].value);
-                    if (isNaN(hours) || hours <= 0) return alert('Invalid hours.');
-                    amount = hours * (parseFloat(state.settings.hourlyRate) || 0);
-                }
-            } else {
-                category = form['category'].value;
-            }
-            if (!description || isNaN(amount) || amount <= 0) return alert('Invalid input.');
-            const newTx = { date, description, amount, type, category, hours, source };
-            const ref = collection(db, 'users', state.user.uid, 'transactions');
-            if (id) await updateDoc(doc(ref, id), newTx); else await addDoc(ref, newTx);
-            closeModal();
-        }
+        async function handleTransactionSubmit(e) { const form=e.target, id=form['transaction-id'].value, date=form['transaction-date'].value, description=form['description'].value; let amount=parseFloat(form['amount'].value); let type=$('type-income').classList.contains('bg-violet-600')?'income':'expense', category='one-time', hours=null, source=null; if(type==='income'){ source=form['income-source'].value; if(source==='work'){ hours=parseFloat(form['hours'].value); if(isNaN(hours)||hours<=0)return alert('Invalid hours.'); amount=hours*(parseFloat(state.settings.hourlyRate)||0); } }else{ category=form['category'].value; } if(!description||isNaN(amount)||amount<=0)return alert('Invalid input.'); const newTx={date,description,amount,type,category,hours,source}; const ref=collection(db,'users',state.user.uid,'transactions'); if(id)await updateDoc(doc(ref,id),newTx); else await addDoc(ref,newTx); closeModal(); }
         async function handleDeleteTransaction() { const id = $('transaction-id').value; if(confirm('Delete transaction?')) { await deleteDoc(doc(db, 'users', state.user.uid, 'transactions', id)); closeModal(); }}
         function openBudgetModal(id=null) { $('budget-form').reset(); $('budget-id').value = id || ''; if (id) { const b = state.settings.recurringExpenses.find(i=>i.id===id); if(b){ $('budget-description').value = b.description; $('budget-amount').value = b.amount; }} $('budget-modal').classList.add('active'); }
         function handleBudgetSubmit(e) { const desc=$('budget-description').value,amount=parseFloat($('budget-amount').value),id=$('budget-id').value||Date.now().toString(); if(!desc||isNaN(amount)||amount<=0)return; const idx=state.settings.recurringExpenses.findIndex(i=>i.id===id); if(idx>-1)state.settings.recurringExpenses[idx]={id,description:desc,amount}; else state.settings.recurringExpenses.push({id,description:desc,amount}); saveSettings().then(()=>{render();closeModal();}); }
@@ -332,6 +298,7 @@
         async function handleAuthForm(e) { const email = $('email').value, password = $('password').value; $('auth-error').textContent = ''; try { if (state.isLogin) await signInWithEmailAndPassword(auth, email, password); else await createUserWithEmailAndPassword(auth, email, password); } catch (error) { $('auth-error').textContent = error.message; }}
         function toggleAuthMode(e) { e.preventDefault(); state.isLogin = !state.isLogin; $('auth-title').textContent = state.isLogin ? 'Login' : 'Sign Up'; $('auth-button').textContent = state.isLogin ? 'Login' : 'Create Account'; $('auth-toggle').textContent = state.isLogin ? 'Need an account? Sign up' : 'Have an account? Login'; $('auth-error').textContent = ''; }
         
+        // --- APP INITIALIZATION ---
         $('auth-toggle').addEventListener('click', toggleAuthMode);
         onAuthStateChanged(auth, user => {
             if (user) {
@@ -361,5 +328,6 @@
     </script>
 </body>
 </html>
+
 
 
