@@ -15,43 +15,22 @@
         .modal, #auth-container { display: none; }
         .modal.active, #auth-container.active { display: flex; }
         #app-container.hidden { display: none; }
-
-        /* --- ROBUST FIX FOR CALENDAR LAYOUT ON ALL DEVICES --- */
-        .calendar-day {
-            min-width: 0; /* Prevents grid blowout from long content */
-        }
-        .transaction-list {
-            overflow: hidden; /* Forcefully contains the transaction items */
-        }
-        .transaction-item {
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            cursor: pointer;
-        }
+        .progress-bar { background-color: #e5e7eb; border-radius: 9999px; overflow: hidden; }
+        .progress-bar-inner { height: 100%; border-radius: 9999px; transition: width 0.3s ease-in-out; }
+        .calendar-day { min-width: 0; }
+        .transaction-list { overflow: hidden; }
+        .transaction-item { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; cursor: pointer; }
     </style>
 </head>
 <body class="antialiased text-gray-800">
 
-    <!-- Authentication Overlay -->
+    <!-- Auth Overlay -->
     <div id="auth-container" class="active fixed inset-0 bg-gray-200 items-center justify-center p-4">
         <div class="bg-white rounded-lg shadow-xl p-8 w-full max-w-sm">
             <h2 id="auth-title" class="text-2xl font-bold text-center mb-6 text-gray-800">Login</h2>
-            <form id="auth-form">
-                <div class="mb-4">
-                    <label for="email" class="block text-sm font-medium text-gray-700">Email</label>
-                    <input type="email" id="email" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500" required>
-                </div>
-                <div class="mb-6">
-                    <label for="password" class="block text-sm font-medium text-gray-700">Password</label>
-                    <input type="password" id="password" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500" required>
-                </div>
-                <button type="submit" id="auth-button" class="w-full bg-indigo-600 text-white py-2 px-4 rounded-md hover:bg-indigo-700 transition-colors">Login</button>
-            </form>
+            <form id="auth-form"><div class="mb-4"><label for="email" class="block text-sm font-medium text-gray-700">Email</label><input type="email" id="email" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500" required></div><div class="mb-6"><label for="password" class="block text-sm font-medium text-gray-700">Password</label><input type="password" id="password" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500" required></div><button type="submit" id="auth-button" class="w-full bg-indigo-600 text-white py-2 px-4 rounded-md hover:bg-indigo-700 transition-colors">Login</button></form>
             <p id="auth-error" class="text-red-500 text-sm mt-4 text-center"></p>
-            <p class="text-sm text-center mt-4">
-                <a href="#" id="auth-toggle" class="font-medium text-indigo-600 hover:text-indigo-500">Need an account? Sign up</a>
-            </p>
+            <p class="text-sm text-center mt-4"><a href="#" id="auth-toggle" class="font-medium text-indigo-600 hover:text-indigo-500">Need an account? Sign up</a></p>
         </div>
     </div>
 
@@ -60,63 +39,30 @@
          <div class="container mx-auto p-4 sm:p-6 lg:p-8">
             <header class="text-center mb-8 relative">
                 <h1 class="text-3xl font-bold text-gray-900">Personal Budget Planner</h1>
-                <p class="text-gray-600 mt-1">A simple way to manage your finances, centered around your calendar.</p>
+                <p class="text-gray-600 mt-1">Manage finances with your calendar.</p>
                 <button id="logout-button" class="absolute top-0 right-0 bg-red-500 text-white py-1 px-3 rounded-md hover:bg-red-600 text-sm">Logout</button>
             </header>
             <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
                  <main class="lg:col-span-2 bg-white p-6 rounded-lg shadow-md">
                     <div id="calendar-container">
-                        <div class="flex items-center justify-between mb-6">
-                            <button id="prev-month" class="px-3 py-1 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 transition-colors">&lt;</button>
-                            <h2 id="current-month-year" class="text-xl font-semibold"></h2>
-                            <button id="next-month" class="px-3 py-1 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 transition-colors">&gt;</button>
-                        </div>
-                        <div class="calendar-grid grid-cols-7 text-center font-semibold text-gray-600 text-sm mb-2">
-                            <div>Sun</div><div>Mon</div><div>Tue</div><div>Wed</div><div>Thu</div><div>Fri</div><div>Sat</div>
-                        </div>
+                        <div class="flex items-center justify-between mb-6"><button id="prev-month" class="px-3 py-1 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 transition-colors">&lt;</button><h2 id="current-month-year" class="text-xl font-semibold"></h2><button id="next-month" class="px-3 py-1 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 transition-colors">&gt;</button></div>
+                        <div class="calendar-grid grid-cols-7 text-center font-semibold text-gray-600 text-sm mb-2"><div>Sun</div><div>Mon</div><div>Tue</div><div>Wed</div><div>Thu</div><div>Fri</div><div>Sat</div></div>
                         <div id="calendar-body" class="calendar-grid border-t border-l border-gray-200"></div>
                     </div>
                 </main>
                 <aside class="space-y-8">
                     <div class="bg-white p-6 rounded-lg shadow-md">
                         <h3 class="text-lg font-semibold mb-4 border-b pb-2">Monthly Summary</h3>
-                        <div class="space-y-3">
-                            <div class="flex justify-between items-center"><span class="text-gray-600">Total Income:</span><span id="summary-income" class="font-bold text-green-600">€0.00</span></div>
-                            <div class="flex justify-between items-center"><span class="text-gray-600">Total Expenses:</span><span id="summary-expenses" class="font-bold text-red-600">€0.00</span></div>
-                            <hr>
-                            <div class="flex justify-between items-center text-lg"><span class="font-semibold">Net Balance:</span><span id="summary-net" class="font-bold">€0.00</span></div>
-                            <div class="flex justify-between items-center text-lg"><span class="font-semibold">Cash Flow Today:</span><span id="summary-cashflow" class="font-bold">€0.00</span></div>
-                        </div>
+                        <div class="space-y-3"><div class="flex justify-between items-center"><span class="text-gray-600">Total Income:</span><span id="summary-income" class="font-bold text-green-600">€0.00</span></div><div class="flex justify-between items-center"><span class="text-gray-600">Total Expenses:</span><span id="summary-expenses" class="font-bold text-red-600">€0.00</span></div><hr><div class="flex justify-between items-center text-lg"><span class="font-semibold">Net Balance:</span><span id="summary-net" class="font-bold">€0.00</span></div><div class="flex justify-between items-center text-lg"><span class="font-semibold">Cash Flow Today:</span><span id="summary-cashflow" class="font-bold">€0.00</span></div></div>
                     </div>
                      <div class="bg-white p-6 rounded-lg shadow-md">
                         <h3 class="text-lg font-semibold mb-4 border-b pb-2">Monthly Distributed Expenses</h3>
-                        <form id="recurring-form" class="mb-4 space-y-3">
-                            <input type="hidden" id="recurring-id">
-                            <div>
-                                <label for="recurring-description" class="text-sm font-medium text-gray-700">Description</label>
-                                <input type="text" id="recurring-description" placeholder="e.g., Groceries" class="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm" required>
-                            </div>
-                            <div>
-                                <label for="recurring-amount" class="text-sm font-medium text-gray-700">Monthly Budget (€)</label>
-                                <input type="number" id="recurring-amount" placeholder="e.g., 300" class="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm" step="0.01" required>
-                            </div>
-                            <button type="submit" id="add-recurring-btn" class="w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700">Add Expense</button>
-                        </form>
-                        <div id="recurring-expenses-list" class="space-y-2"></div>
+                        <form id="recurring-form" class="mb-4 space-y-3"><input type="hidden" id="recurring-id"><div><label for="recurring-description" class="text-sm font-medium text-gray-700">Description</label><input type="text" id="recurring-description" placeholder="e.g., Groceries" class="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm" required></div><div><label for="recurring-amount" class="text-sm font-medium text-gray-700">Monthly Budget (€)</label><input type="number" id="recurring-amount" placeholder="e.g., 300" class="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm" step="0.01" required></div><button type="submit" id="add-recurring-btn" class="w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700">Add Budget</button></form>
+                        <div id="recurring-expenses-list" class="space-y-4"></div>
                     </div>
                     <div class="bg-white p-6 rounded-lg shadow-md">
                         <h3 class="text-lg font-semibold mb-4 border-b pb-2">Settings</h3>
-                        <div class="space-y-4">
-                            <div>
-                                <label for="hourly-rate" class="block text-sm font-medium text-gray-700 mb-1">Your Hourly Rate (€)</label>
-                                <input type="number" id="hourly-rate" class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500" placeholder="e.g., 15.50" step="0.01">
-                            </div>
-                            <div>
-                                <label for="initial-balance" class="block text-sm font-medium text-gray-700 mb-1">Initial Balance (€)</label>
-                                <input type="number" id="initial-balance" class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500" placeholder="e.g., 500.00" step="0.01">
-                            </div>
-                            <button id="save-settings-btn" class="w-full bg-indigo-600 text-white py-2 px-4 rounded-md hover:bg-indigo-700 transition-colors">Save Settings</button>
-                        </div>
+                        <div class="space-y-4"><div><label for="hourly-rate" class="block text-sm font-medium text-gray-700 mb-1">Your Hourly Rate (€)</label><input type="number" id="hourly-rate" class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500" placeholder="e.g., 15.50" step="0.01"></div><div><label for="initial-balance" class="block text-sm font-medium text-gray-700 mb-1">Initial Balance (€)</label><input type="number" id="initial-balance" class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500" placeholder="e.g., 500.00" step="0.01"></div><button id="save-settings-btn" class="w-full bg-indigo-600 text-white py-2 px-4 rounded-md hover:bg-indigo-700 transition-colors">Save Settings</button></div>
                     </div>
                     <div id="daily-breakdown" class="bg-white p-6 rounded-lg shadow-md hidden">
                         <h3 class="text-lg font-semibold mb-4 border-b pb-2">Daily Breakdown</h3>
@@ -133,10 +79,10 @@
         <div class="bg-white rounded-lg shadow-xl p-6 w-full max-w-md">
              <h3 id="modal-title" class="text-xl font-semibold mb-6">Add Transaction</h3>
             <form id="transaction-form">
-                <input type="hidden" id="transaction-date">
-                <input type="hidden" id="transaction-id">
+                <input type="hidden" id="transaction-date"><input type="hidden" id="transaction-id">
                 <div class="mb-4"><div class="flex rounded-md shadow-sm"><button type="button" id="type-income" class="flex-1 py-2 px-4 border bg-white border-gray-300 rounded-l-md focus:outline-none">Income</button><button type="button" id="type-expense" class="flex-1 py-2 px-4 border bg-white border-gray-300 rounded-r-md focus:outline-none -ml-px">Expense</button></div></div>
                 <div id="income-source-group" class="mb-4 hidden"><label class="block text-sm font-medium text-gray-700 mb-2">Income Type</label><div class="flex space-x-4"><label class="flex items-center"><input type="radio" name="income-source" value="other" class="focus:ring-indigo-500 h-4 w-4 text-indigo-600 border-gray-300" checked><span class="ml-2 text-sm text-gray-700">Fixed Amount</span></label><label class="flex items-center"><input type="radio" name="income-source" value="work" class="focus:ring-indigo-500 h-4 w-4 text-indigo-600 border-gray-300"><span class="ml-2 text-sm text-gray-700">Work (by hours)</span></label></div></div>
+                <div id="category-group" class="mb-4 hidden"><label for="category" class="block text-sm font-medium text-gray-700">Category</label><select id="category" class="mt-1 block w-full px-3 py-2 border border-gray-300 bg-white rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"></select></div>
                 <div class="mb-4"><label for="description" class="block text-sm font-medium text-gray-700">Description</label><input type="text" id="description" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500" required></div>
                 <div id="amount-group" class="mb-4"><label for="amount" class="block text-sm font-medium text-gray-700">Amount (€)</label><input type="number" id="amount" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500" step="0.01" required></div>
                 <div id="hours-group" class="mb-4 hidden"><label for="hours" class="block text-sm font-medium text-gray-700">Hours Worked</label><input type="number" id="hours" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500" step="0.1"><p class="text-sm text-gray-500 mt-1">Calculated Income: <span id="calculated-income" class="font-semibold">€0.00</span></p></div>
@@ -146,224 +92,103 @@
     </div>
 
     <script type="module">
-        // Firebase Imports
         import { initializeApp } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-app.js";
         import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-auth.js";
         import { getFirestore, doc, setDoc, getDoc, collection, addDoc, onSnapshot, deleteDoc, updateDoc } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-firestore.js";
 
-        // Your web app's Firebase configuration
-        const firebaseConfig = {
-            apiKey: "AIzaSyDzeI6mMuICNJdO_G2F7fiGFlQhyo8RWM8",
-            authDomain: "budgeting-b3974.firebaseapp.com",
-            projectId: "budgeting-b3974",
-            storageBucket: "budgeting-b3974.appspot.com",
-            messagingSenderId: "462817466291",
-            appId: "1:462817466291:web:13260b80355f9d0b559dc6"
-        };
-
-        // Initialize Firebase
+        const firebaseConfig = {"apiKey":"AIzaSyDzeI6mMuICNJdO_G2F7fiGFlQhyo8RWM8","authDomain":"budgeting-b3974.firebaseapp.com","projectId":"budgeting-b3974","storageBucket":"budgeting-b3974.appspot.com","messagingSenderId":"462817466291","appId":"1:462817466291:web:13260b80355f9d0b559dc6"};
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
         const db = getFirestore(app);
 
-        // Global variables
         let currentDate = dayjs();
         let transactions = {};
         let settings = { hourlyRate: '', initialBalance: 0, recurringExpenses: [] };
-        let currentTransactionType = 'expense';
         let currentUserId = null;
         let unsubscribeTransactions;
 
-        // DOM Elements
-        const authContainer = document.getElementById('auth-container');
-        const appContainer = document.getElementById('app-container');
-        const authForm = document.getElementById('auth-form');
-        const authTitle = document.getElementById('auth-title');
-        const authButton = document.getElementById('auth-button');
-        const authToggle = document.getElementById('auth-toggle');
-        const authError = document.getElementById('auth-error');
-        const logoutButton = document.getElementById('logout-button');
-        const emailInput = document.getElementById('email');
-        const passwordInput = document.getElementById('password');
-        const calendarBody = document.getElementById('calendar-body');
-        const currentMonthYear = document.getElementById('current-month-year');
-        const prevMonthBtn = document.getElementById('prev-month');
-        const nextMonthBtn = document.getElementById('next-month');
-        const hourlyRateInput = document.getElementById('hourly-rate');
-        const initialBalanceInput = document.getElementById('initial-balance');
-        const saveSettingsBtn = document.getElementById('save-settings-btn');
-        const modal = document.getElementById('transaction-modal');
-        const modalTitle = document.getElementById('modal-title');
-        const transactionForm = document.getElementById('transaction-form');
-        const transactionDateInput = document.getElementById('transaction-date');
-        const transactionIdInput = document.getElementById('transaction-id');
-        const descriptionInput = document.getElementById('description');
-        const amountInput = document.getElementById('amount');
-        const hoursInput = document.getElementById('hours');
-        const typeIncomeBtn = document.getElementById('type-income');
-        const typeExpenseBtn = document.getElementById('type-expense');
-        const incomeSourceGroup = document.getElementById('income-source-group');
-        const amountGroup = document.getElementById('amount-group');
-        const hoursGroup = document.getElementById('hours-group');
-        const incomeSourceRadios = document.querySelectorAll('input[name="income-source"]');
-        const calculatedIncomeSpan = document.getElementById('calculated-income');
-        const cancelBtn = document.getElementById('cancel-transaction');
-        const deleteBtn = document.getElementById('delete-transaction');
-        const recurringForm = document.getElementById('recurring-form');
-        const recurringDescriptionInput = document.getElementById('recurring-description');
-        const recurringAmountInput = document.getElementById('recurring-amount');
-        const recurringIdInput = document.getElementById('recurring-id');
-        const addRecurringBtn = document.getElementById('add-recurring-btn');
-        const recurringExpensesList = document.getElementById('recurring-expenses-list');
-        
-        // --- AUTH LOGIC ---
+        const authContainer=document.getElementById('auth-container'),appContainer=document.getElementById('app-container'),authForm=document.getElementById('auth-form'),authTitle=document.getElementById('auth-title'),authButton=document.getElementById('auth-button'),authToggle=document.getElementById('auth-toggle'),authError=document.getElementById('auth-error'),logoutButton=document.getElementById('logout-button'),emailInput=document.getElementById('email'),passwordInput=document.getElementById('password'),calendarBody=document.getElementById('calendar-body'),currentMonthYear=document.getElementById('current-month-year'),prevMonthBtn=document.getElementById('prev-month'),nextMonthBtn=document.getElementById('next-month'),hourlyRateInput=document.getElementById('hourly-rate'),initialBalanceInput=document.getElementById('initial-balance'),saveSettingsBtn=document.getElementById('save-settings-btn'),modal=document.getElementById('transaction-modal'),modalTitle=document.getElementById('modal-title'),transactionForm=document.getElementById('transaction-form'),transactionDateInput=document.getElementById('transaction-date'),transactionIdInput=document.getElementById('transaction-id'),descriptionInput=document.getElementById('description'),amountInput=document.getElementById('amount'),hoursInput=document.getElementById('hours'),typeIncomeBtn=document.getElementById('type-income'),typeExpenseBtn=document.getElementById('type-expense'),incomeSourceGroup=document.getElementById('income-source-group'),amountGroup=document.getElementById('amount-group'),hoursGroup=document.getElementById('hours-group'),incomeSourceRadios=document.querySelectorAll('input[name="income-source"]'),calculatedIncomeSpan=document.getElementById('calculated-income'),cancelBtn=document.getElementById('cancel-transaction'),deleteBtn=document.getElementById('delete-transaction'),recurringForm=document.getElementById('recurring-form'),recurringDescriptionInput=document.getElementById('recurring-description'),recurringAmountInput=document.getElementById('recurring-amount'),recurringIdInput=document.getElementById('recurring-id'),addRecurringBtn=document.getElementById('add-recurring-btn'),recurringExpensesList=document.getElementById('recurring-expenses-list'),categoryGroup=document.getElementById('category-group'),categorySelect=document.getElementById('category');
+
         let isLoginMode = true;
         authToggle.addEventListener('click', (e) => { e.preventDefault(); isLoginMode = !isLoginMode; authTitle.textContent = isLoginMode ? 'Login' : 'Sign Up'; authButton.textContent = isLoginMode ? 'Login' : 'Create Account'; authToggle.textContent = isLoginMode ? 'Need an account? Sign up' : 'Have an account? Login'; authError.textContent = ''; });
         authForm.addEventListener('submit', async (e) => { e.preventDefault(); const email = emailInput.value; const password = passwordInput.value; authError.textContent = ''; try { if (isLoginMode) { await signInWithEmailAndPassword(auth, email, password); } else { await createUserWithEmailAndPassword(auth, email, password); } } catch (error) { authError.textContent = error.message; } });
         logoutButton.addEventListener('click', async () => { if (unsubscribeTransactions) unsubscribeTransactions(); await signOut(auth); currentUserId = null; transactions = {}; });
         onAuthStateChanged(auth, user => { if (user) { currentUserId = user.uid; authContainer.classList.remove('active'); appContainer.classList.remove('hidden'); loadSettingsAndTransactions(); } else { authContainer.classList.add('active'); appContainer.classList.add('hidden'); } });
 
-        // --- DATA & SETTINGS LOGIC (FIRESTORE) ---
-        async function loadSettingsAndTransactions() {
-            await loadSettings();
-            listenForTransactions();
-        }
-
-        async function saveSettings() {
-            if (!currentUserId) return;
-            settings.hourlyRate = hourlyRateInput.value;
-            settings.initialBalance = parseFloat(initialBalanceInput.value) || 0;
-            const settingsRef = doc(db, 'users', currentUserId);
-            await setDoc(settingsRef, { settings }, { merge: true });
-        }
-
-        async function loadSettings() {
-            if (!currentUserId) return;
-            const settingsRef = doc(db, 'users', currentUserId);
-            const docSnap = await getDoc(settingsRef);
-            if (docSnap.exists() && docSnap.data().settings) {
-                const loadedSettings = docSnap.data().settings;
-                settings.hourlyRate = loadedSettings.hourlyRate || '';
-                settings.initialBalance = loadedSettings.initialBalance || 0;
-                settings.recurringExpenses = loadedSettings.recurringExpenses || [];
-                hourlyRateInput.value = settings.hourlyRate;
-                initialBalanceInput.value = settings.initialBalance;
-            }
-            renderAll();
-        }
+        async function loadSettingsAndTransactions() { await loadSettings(); listenForTransactions(); }
+        async function saveSettings() { if (!currentUserId) return; settings.hourlyRate = hourlyRateInput.value; settings.initialBalance = parseFloat(initialBalanceInput.value) || 0; const settingsRef = doc(db, 'users', currentUserId); await setDoc(settingsRef, { settings }, { merge: true });}
+        async function loadSettings() { if (!currentUserId) return; const settingsRef = doc(db, 'users', currentUserId); const docSnap = await getDoc(settingsRef); if (docSnap.exists() && docSnap.data().settings) { const loadedSettings = docSnap.data().settings; settings.hourlyRate = loadedSettings.hourlyRate || ''; settings.initialBalance = loadedSettings.initialBalance || 0; settings.recurringExpenses = loadedSettings.recurringExpenses || []; hourlyRateInput.value = settings.hourlyRate; initialBalanceInput.value = settings.initialBalance; } renderAll(); }
         
-        // --- TRANSACTION LOGIC ---
-        function listenForTransactions() {
-            if (!currentUserId) return;
-            if (unsubscribeTransactions) unsubscribeTransactions();
-            const transCollectionRef = collection(db, 'users', currentUserId, 'transactions');
-            unsubscribeTransactions = onSnapshot(transCollectionRef, (snapshot) => {
-                transactions = {};
-                snapshot.forEach(doc => { const t = { id: doc.id, ...doc.data() }; if (!transactions[t.date]) { transactions[t.date] = []; } transactions[t.date].push(t); });
-                renderAll();
-            });
-        }
-        async function handleFormSubmit(e) { e.preventDefault(); if (!currentUserId) return; const date = transactionDateInput.value; const id = transactionIdInput.value; const description = descriptionInput.value; let amount; let hours = null; let source = null; if (currentTransactionType === 'income') { source = document.querySelector('input[name="income-source"]:checked').value; if(source === 'work') { hours = parseFloat(hoursInput.value); const rate = parseFloat(settings.hourlyRate); if (!rate || rate <= 0) { alert('Please set your hourly rate in Settings.'); return; } if (isNaN(hours) || hours <= 0) { alert('Please enter valid hours worked.'); return; } amount = hours * rate; } else { amount = parseFloat(amountInput.value); } } else { amount = parseFloat(amountInput.value); } if (isNaN(amount) || amount <= 0) { alert('Please enter a valid amount.'); return; } const newTransaction = { date, description, amount, type: currentTransactionType, hours, source, }; const transCollectionRef = collection(db, 'users', currentUserId, 'transactions'); if (id) { const docRef = doc(transCollectionRef, id); await updateDoc(docRef, newTransaction); } else { await addDoc(transCollectionRef, newTransaction); } closeModal(); }
-        async function handleDelete() { if (!currentUserId) return; const id = transactionIdInput.value; if (confirm('Are you sure you want to delete this transaction?')) { const docRef = doc(db, 'users', currentUserId, 'transactions', id); await deleteDoc(docRef); closeModal(); } }
+        function listenForTransactions() { if (!currentUserId) return; if (unsubscribeTransactions) unsubscribeTransactions(); const transCollectionRef = collection(db, 'users', currentUserId, 'transactions'); unsubscribeTransactions = onSnapshot(transCollectionRef, (snapshot) => { transactions = {}; snapshot.forEach(doc => { const t = { id: doc.id, ...doc.data() }; if (!transactions[t.date]) { transactions[t.date] = []; } transactions[t.date].push(t); }); renderAll(); }); }
+        async function handleFormSubmit(e) { e.preventDefault(); if (!currentUserId) return; const date = transactionDateInput.value; const id = transactionIdInput.value; const description = descriptionInput.value; let amount; let hours=null, source=null, category = 'one-time'; if (descriptionInput.value.trim() === '') { alert('Please enter a description.'); return; } if (typeIncomeBtn.classList.contains('bg-green-500')) { source = document.querySelector('input[name="income-source"]:checked').value; if(source === 'work') { hours = parseFloat(hoursInput.value); const rate = parseFloat(settings.hourlyRate); if (!rate || rate <= 0) { alert('Please set your hourly rate in Settings.'); return; } if (isNaN(hours) || hours <= 0) { alert('Please enter valid hours worked.'); return; } amount = hours * rate; } else { amount = parseFloat(amountInput.value); } } else { amount = parseFloat(amountInput.value); category = categorySelect.value; } if (isNaN(amount) || amount <= 0) { alert('Please enter a valid amount.'); return; } const newTransaction = { date, description, amount, type: typeIncomeBtn.classList.contains('bg-green-500') ? 'income' : 'expense', hours, source, category }; const transCollectionRef = collection(db, 'users', currentUserId, 'transactions'); if (id) { await updateDoc(doc(transCollectionRef, id), newTransaction); } else { await addDoc(transCollectionRef, newTransaction); } closeModal(); }
+        async function handleDelete() { if (!currentUserId) return; const id = transactionIdInput.value; if (confirm('Are you sure you want to delete this transaction?')) { await deleteDoc(doc(db, 'users', currentUserId, 'transactions', id)); closeModal(); } }
 
-        // --- RECURRING EXPENSE LOGIC ---
-        recurringForm.addEventListener('submit', (e) => {
-            e.preventDefault();
-            const description = recurringDescriptionInput.value;
-            const amount = parseFloat(recurringAmountInput.value);
-            const id = recurringIdInput.value || Date.now().toString();
-
-            if (!description || isNaN(amount) || amount <= 0) {
-                alert('Please enter a valid description and amount.');
-                return;
-            }
-            
-            const existingIndex = settings.recurringExpenses.findIndex(item => item.id === id);
-            if (existingIndex > -1) {
-                settings.recurringExpenses[existingIndex] = { id, description, amount };
-            } else {
-                settings.recurringExpenses.push({ id, description, amount });
-            }
-
-            saveSettings().then(() => {
-                renderAll();
-                recurringForm.reset();
-                recurringIdInput.value = '';
-                addRecurringBtn.textContent = 'Add Expense';
-            });
-        });
+        recurringForm.addEventListener('submit', (e) => { e.preventDefault(); const description = recurringDescriptionInput.value; const amount = parseFloat(recurringAmountInput.value); const id = recurringIdInput.value || Date.now().toString(); if (!description || isNaN(amount) || amount <= 0) { alert('Please enter a valid description and amount.'); return; } const existingIndex = settings.recurringExpenses.findIndex(item => item.id === id); if (existingIndex > -1) { settings.recurringExpenses[existingIndex] = { id, description, amount }; } else { settings.recurringExpenses.push({ id, description, amount }); } saveSettings().then(() => { renderAll(); recurringForm.reset(); recurringIdInput.value = ''; addRecurringBtn.textContent = 'Add Budget'; }); });
 
         function renderRecurringExpenses() {
             recurringExpensesList.innerHTML = '';
-            if (!settings.recurringExpenses || settings.recurringExpenses.length === 0) {
-                recurringExpensesList.innerHTML = `<p class="text-sm text-gray-500 text-center">No distributed expenses added yet.</p>`;
-                return;
-            }
+            if (!settings.recurringExpenses || settings.recurringExpenses.length === 0) { recurringExpensesList.innerHTML = `<p class="text-sm text-gray-500 text-center">No monthly budgets added yet.</p>`; return; }
+            
+            const month = currentDate.month();
+            const year = currentDate.year();
+            const monthlyTransactions = Object.values(transactions).flat().filter(t => dayjs(t.date).month() === month && dayjs(t.date).year() === year);
+
             settings.recurringExpenses.forEach(item => {
+                const spent = monthlyTransactions.filter(t => t.category === item.id).reduce((acc, t) => acc + t.amount, 0);
+                const percentage = item.amount > 0 ? (spent / item.amount) * 100 : 0;
+                const progressColor = percentage > 100 ? 'bg-red-500' : (percentage > 75 ? 'bg-yellow-500' : 'bg-green-500');
+
                 const div = document.createElement('div');
-                div.className = 'flex justify-between items-center bg-gray-50 p-2 rounded-md';
+                div.className = 'bg-gray-50 p-3 rounded-md';
                 div.innerHTML = `
-                    <div class="flex-1">
+                    <div class="flex justify-between items-center mb-2">
                         <p class="font-medium text-gray-800">${item.description}</p>
-                        <p class="text-sm text-gray-600">€${item.amount.toFixed(2)} / month</p>
+                        <div class="flex space-x-2">
+                            <button class="edit-recurring-btn text-sm font-medium text-blue-600 hover:text-blue-800" data-id="${item.id}">Edit</button>
+                            <button class="delete-recurring-btn text-sm font-medium text-red-600 hover:text-red-800" data-id="${item.id}">Delete</button>
+                        </div>
                     </div>
-                    <div class="flex space-x-2">
-                        <button class="edit-recurring-btn text-blue-500 hover:text-blue-700" data-id="${item.id}">Edit</button>
-                        <button class="delete-recurring-btn text-red-500 hover:text-red-700" data-id="${item.id}">Del</button>
-                    </div>`;
+                    <div class="text-sm text-gray-600 mb-2">
+                        <span>Spent: €${spent.toFixed(2)}</span> / <span>Budget: €${item.amount.toFixed(2)}</span>
+                    </div>
+                    <div class="progress-bar h-2 w-full"><div class="progress-bar-inner ${progressColor}" style="width: ${Math.min(percentage, 100)}%;"></div></div>
+                `;
                 recurringExpensesList.appendChild(div);
             });
-
-            document.querySelectorAll('.edit-recurring-btn').forEach(btn => {
-                btn.addEventListener('click', () => {
-                    const id = btn.dataset.id;
-                    const item = settings.recurringExpenses.find(i => i.id === id);
-                    if (item) {
-                        recurringDescriptionInput.value = item.description;
-                        recurringAmountInput.value = item.amount;
-                        recurringIdInput.value = item.id;
-                        addRecurringBtn.textContent = 'Update Expense';
-                    }
-                });
-            });
-
-            document.querySelectorAll('.delete-recurring-btn').forEach(btn => {
-                btn.addEventListener('click', () => {
-                    const id = btn.dataset.id;
-                    settings.recurringExpenses = settings.recurringExpenses.filter(i => i.id !== id);
-                    saveSettings().then(() => renderAll());
-                });
-            });
+            document.querySelectorAll('.edit-recurring-btn').forEach(btn => btn.addEventListener('click', () => { const item = settings.recurringExpenses.find(i => i.id === btn.dataset.id); if (item) { recurringDescriptionInput.value = item.description; recurringAmountInput.value = item.amount; recurringIdInput.value = item.id; addRecurringBtn.textContent = 'Update Budget'; } }));
+            document.querySelectorAll('.delete-recurring-btn').forEach(btn => btn.addEventListener('click', () => { settings.recurringExpenses = settings.recurringExpenses.filter(i => i.id !== btn.dataset.id); saveSettings().then(() => renderAll()); }));
         }
 
-        // --- UI & RENDERING LOGIC ---
-        function renderAll() {
-            renderCalendar();
-            updateSummaryAndCashFlow();
-            renderRecurringExpenses();
+        function renderAll() { renderCalendar(); updateSummaryAndCashFlow(); renderRecurringExpenses(); }
+        function openModal(date, id = null) {
+            modal.classList.add('active'); transactionForm.reset(); transactionDateInput.value = date; deleteBtn.classList.add('hidden');
+            let transactionType = 'expense'; let transactionCategory = 'one-time';
+            if (id) {
+                modalTitle.textContent = 'Edit Transaction'; const transaction = transactions[date]?.find(t => t.id === id);
+                if (transaction) {
+                    transactionIdInput.value = id; descriptionInput.value = transaction.description; amountInput.value = transaction.amount;
+                    if (transaction.hours) hoursInput.value = transaction.hours;
+                    transactionType = transaction.type;
+                    if(transaction.type === 'income'){ const source = transaction.source || (transaction.hours ? 'work' : 'other'); document.querySelector(`input[name="income-source"][value="${source}"]`).checked = true; }
+                    else { transactionCategory = transaction.category || 'one-time'; }
+                    deleteBtn.classList.remove('hidden');
+                }
+            } else { modalTitle.textContent = `Add Transaction for ${dayjs(date).format('MMMM D, YYYY')}`; transactionIdInput.value = ''; }
+            setTransactionType(transactionType, transactionCategory);
         }
-        function openModal(date, id = null) { modal.classList.add('active'); transactionForm.reset(); transactionDateInput.value = date; deleteBtn.classList.add('hidden'); if (id) { modalTitle.textContent = 'Edit Transaction'; const transaction = transactions[date].find(t => t.id === id); if (transaction) { transactionIdInput.value = id; descriptionInput.value = transaction.description; amountInput.value = transaction.amount; if(transaction.hours) hoursInput.value = transaction.hours; setTransactionType(transaction.type); if(transaction.type === 'income'){ const source = transaction.source || (transaction.hours ? 'work' : 'other'); document.querySelector(`input[name="income-source"][value="${source}"]`).checked = true; toggleIncomeFields(); } deleteBtn.classList.remove('hidden'); } } else { modalTitle.textContent = `Add Transaction for ${dayjs(date).format('MMMM D, YYYY')}`; transactionIdInput.value = ''; setTransactionType('expense'); } }
         function renderCalendar() { calendarBody.innerHTML = ''; const month = currentDate.month(); const year = currentDate.year(); currentMonthYear.textContent = currentDate.format('MMMM YYYY'); const firstDayOfMonth = dayjs().year(year).month(month).startOf('month').day(); const daysInMonth = currentDate.daysInMonth(); const prevMonth = currentDate.subtract(1, 'month'); const daysInPrevMonth = prevMonth.daysInMonth(); for (let i = firstDayOfMonth; i > 0; i--) { const day = daysInPrevMonth - i + 1; const date = prevMonth.date(day).format('YYYY-MM-DD'); calendarBody.innerHTML += createDayCell(day, date, true); } for (let i = 1; i <= daysInMonth; i++) { const date = dayjs().year(year).month(month).date(i).format('YYYY-MM-DD'); calendarBody.innerHTML += createDayCell(i, date, false); } const totalCells = firstDayOfMonth + daysInMonth; const nextMonthDays = (7 - (totalCells % 7)) % 7; const nextMonthDate = currentDate.add(1, 'month'); for (let i = 1; i <= nextMonthDays; i++) { const date = nextMonthDate.date(i).format('YYYY-MM-DD'); calendarBody.innerHTML += createDayCell(i, date, true); } addCalendarEventListeners(); renderTransactionsOnCalendar(); }
         function createDayCell(day, date, isOtherMonth) { const today = dayjs().format('YYYY-MM-DD'); let dayClass = 'calendar-day relative p-2 border-r border-b border-gray-200 transition-colors duration-200'; if (isOtherMonth) dayClass += ' other-month'; else dayClass += ' hover:bg-gray-50 cursor-pointer'; const dayNumberHtml = date === today ? `<div class="absolute top-1 right-1 text-xs sm:text-sm bg-indigo-600 text-white rounded-full h-6 w-6 flex items-center justify-center font-semibold">${day}</div>` : `<div class="text-xs sm:text-sm text-right">${day}</div>`; return `<div class="${dayClass}" data-date="${date}">${dayNumberHtml}<div class="transaction-list mt-8 text-xs space-y-1"></div></div>`; }
         function renderTransactionsOnCalendar() { document.querySelectorAll('.transaction-item').forEach(el => el.remove()); for (const date in transactions) { const dayCell = document.querySelector(`.calendar-day[data-date="${date}"]`); if (dayCell) { const transactionList = dayCell.querySelector('.transaction-list'); transactions[date].forEach(t => { const item = document.createElement('div'); const fullText = `${t.description}: €${t.amount.toFixed(2)}`; item.className = `transaction-item p-1 rounded-md text-white ${t.type === 'income' ? 'bg-green-500' : 'bg-red-500'}`; item.textContent = fullText; item.title = fullText; item.dataset.id = t.id; item.dataset.date = date; item.addEventListener('click', (e) => { e.stopPropagation(); openModal(date, t.id); }); transactionList.appendChild(item); }); } } }
         
         function updateSummaryAndCashFlow() {
-            const month = currentDate.month();
-            const year = currentDate.year();
-            let totalIncome = 0;
-            let totalExpenses = 0;
+            const month = currentDate.month(), year = currentDate.year();
+            let totalIncome = 0, oneTimeExpenses = 0;
+            const monthlyTransactions = Object.values(transactions).flat().filter(t => dayjs(t.date).month() === month && dayjs(t.date).year() === year);
+            monthlyTransactions.forEach(t => { if (t.type === 'income') { totalIncome += t.amount; } else if (t.category === 'one-time') { oneTimeExpenses += t.amount; } });
             
-            // Calculate transaction-based income/expenses for the month
-            Object.values(transactions).flat().filter(t => dayjs(t.date).month() === month && dayjs(t.date).year() === year).forEach(t => {
-                if (t.type === 'income') totalIncome += t.amount;
-                else totalExpenses += t.amount;
-            });
-            
-            // Add recurring expenses to the monthly total summary
-            const totalRecurring = (settings.recurringExpenses || []).reduce((acc, item) => acc + item.amount, 0);
-            totalExpenses += totalRecurring;
+            const totalRecurringBudget = (settings.recurringExpenses || []).reduce((acc, item) => acc + item.amount, 0);
+            const totalExpenses = oneTimeExpenses + totalRecurringBudget;
 
-            // Update Monthly Summary UI
             document.getElementById('summary-income').textContent = `€${totalIncome.toFixed(2)}`;
             document.getElementById('summary-expenses').textContent = `€${totalExpenses.toFixed(2)}`;
             const net = totalIncome - totalExpenses;
@@ -371,63 +196,23 @@
             netSpan.textContent = `€${net.toFixed(2)}`;
             netSpan.className = `font-bold ${net >= 0 ? 'text-green-600' : 'text-red-600'}`;
             
-            // --- CORRECTED Cash Flow Today Calculation ---
-            // This now reflects ACTUAL cash on hand based on real transactions.
             let runningBalance = parseFloat(settings.initialBalance) || 0;
             const sortedTransactions = Object.values(transactions).flat().sort((a,b) => dayjs(a.date).isAfter(dayjs(b.date)) ? 1 : -1);
-            
-            for (const t of sortedTransactions) {
-                if (dayjs(t.date).isAfter(dayjs(), 'day')) continue; // Don't include future transactions
-                runningBalance += t.type === 'income' ? t.amount : -t.amount;
-            }
-
+            for (const t of sortedTransactions) { if (dayjs(t.date).isAfter(dayjs(), 'day')) continue; runningBalance += t.type === 'income' ? t.amount : -t.amount; }
             const cashFlowSpan = document.getElementById('summary-cashflow');
             cashFlowSpan.textContent = `€${runningBalance.toFixed(2)}`;
             cashFlowSpan.className = `font-bold ${runningBalance >= 0 ? 'text-gray-800' : 'text-red-600'}`;
         }
         
-        function showDailyBreakdown(dateStr) {
-            const date = dayjs(dateStr);
-            const daysInMonth = date.daysInMonth();
-            const breakdownDiv = document.getElementById('daily-breakdown');
-            const contentDiv = document.getElementById('daily-breakdown-content');
-            document.getElementById('daily-breakdown-date').textContent = date.format('MMMM D, YYYY');
-            breakdownDiv.classList.remove('hidden');
-            contentDiv.innerHTML = '';
-            
-            let runningBalance = parseFloat(settings.initialBalance) || 0;
-            const totalRecurring = (settings.recurringExpenses || []).reduce((acc, item) => acc + item.amount, 0);
-            const dailyRecurringCost = totalRecurring / daysInMonth;
-            
-            // Subtract distributed cost up to the selected day for PROJECTION
-            runningBalance -= (date.date() * dailyRecurringCost);
-            
-            // Add/subtract actual transactions up to the selected day
-            const sortedTransactions = Object.values(transactions).flat().sort((a,b) => dayjs(a.date).isAfter(dayjs(b.date)) ? 1 : -1);
-            for (const t of sortedTransactions) {
-                if (dayjs(t.date).isAfter(date, 'day')) break;
-                runningBalance += t.type === 'income' ? t.amount : -t.amount;
-            }
-            
-            contentDiv.innerHTML += `<div class="flex justify-between p-2 rounded-md bg-gray-100"><span class="font-semibold">Projected Balance</span><span class="font-bold ${runningBalance >= 0 ? 'text-gray-800' : 'text-red-600'}">€${runningBalance.toFixed(2)}</span></div>`;
-            const dailyTransactions = transactions[dateStr] || [];
-            if (dailyTransactions.length > 0) {
-                const list = document.createElement('ul');
-                list.className = 'mt-2 space-y-1 text-sm';
-                dailyTransactions.forEach(t => { const item = document.createElement('li'); item.className = 'flex justify-between items-center'; item.innerHTML = `<span>${t.description}</span> <span class="${t.type === 'income' ? 'text-green-600' : 'text-red-600'}">${t.type === 'income' ? '+' : '-'}${t.amount.toFixed(2)}</span>`; list.appendChild(item); });
-                contentDiv.appendChild(list);
-            } else {
-                 contentDiv.innerHTML += '<p class="text-sm text-gray-500 mt-2">No specific transactions for this day.</p>';
-            }
-        }
+        function showDailyBreakdown(dateStr) { const date = dayjs(dateStr); const daysInMonth = date.daysInMonth(); const breakdownDiv = document.getElementById('daily-breakdown'); const contentDiv = document.getElementById('daily-breakdown-content'); document.getElementById('daily-breakdown-date').textContent = date.format('MMMM D, YYYY'); breakdownDiv.classList.remove('hidden'); contentDiv.innerHTML = ''; let runningBalance = parseFloat(settings.initialBalance) || 0; const totalRecurring = (settings.recurringExpenses || []).reduce((acc, item) => acc + item.amount, 0); const dailyRecurringCost = totalRecurring / daysInMonth; runningBalance -= (date.date() * dailyRecurringCost); const sortedTransactions = Object.values(transactions).flat().sort((a,b) => dayjs(a.date).isAfter(dayjs(b.date)) ? 1 : -1); for (const t of sortedTransactions) { if (dayjs(t.date).isAfter(date, 'day')) break; runningBalance += t.type === 'income' ? t.amount : -t.amount; } contentDiv.innerHTML += `<div class="flex justify-between p-2 rounded-md bg-gray-100"><span class="font-semibold">Projected Balance</span><span class="font-bold ${runningBalance >= 0 ? 'text-gray-800' : 'text-red-600'}">€${runningBalance.toFixed(2)}</span></div>`; const dailyTransactions = transactions[dateStr] || []; if (dailyTransactions.length > 0) { const list = document.createElement('ul'); list.className = 'mt-2 space-y-1 text-sm'; dailyTransactions.forEach(t => { const item = document.createElement('li'); item.className = 'flex justify-between items-center'; item.innerHTML = `<span>${t.description}</span> <span class="${t.type === 'income' ? 'text-green-600' : 'text-red-600'}">${t.type === 'income' ? '+' : '-'}${t.amount.toFixed(2)}</span>`; list.appendChild(item); }); contentDiv.appendChild(list); } else { contentDiv.innerHTML += '<p class="text-sm text-gray-500 mt-2">No specific transactions for this day.</p>'; } }
 
         function closeModal() { modal.classList.remove('active'); }
         function addCalendarEventListeners() { document.querySelectorAll('.calendar-day:not(.other-month)').forEach(dayCell => { dayCell.addEventListener('click', (e) => { if (e.target.closest('.transaction-item')) return; openModal(dayCell.dataset.date); showDailyBreakdown(dayCell.dataset.date); }); dayCell.addEventListener('mouseenter', (e) => showDailyBreakdown(dayCell.dataset.date)); }); }
-        function setTransactionType(type) { currentTransactionType = type; if (type === 'income') { typeIncomeBtn.classList.add('bg-green-500', 'text-white'); typeIncomeBtn.classList.remove('bg-white'); typeExpenseBtn.classList.remove('bg-red-500', 'text-white'); typeExpenseBtn.classList.add('bg-white'); incomeSourceGroup.classList.remove('hidden'); document.querySelector('input[name="income-source"][value="other"]').checked = true; toggleIncomeFields(); } else { typeExpenseBtn.classList.add('bg-red-500', 'text-white'); typeExpenseBtn.classList.remove('bg-white'); typeIncomeBtn.classList.remove('bg-green-500', 'text-white'); typeIncomeBtn.classList.add('bg-white'); incomeSourceGroup.classList.add('hidden'); hoursGroup.classList.add('hidden'); amountGroup.classList.remove('hidden'); amountInput.required = true; hoursInput.required = false; } }
+        function setTransactionType(type, category = 'one-time') { if (type === 'income') { typeIncomeBtn.classList.add('bg-green-500', 'text-white'); typeIncomeBtn.classList.remove('bg-white'); typeExpenseBtn.classList.remove('bg-red-500', 'text-white'); typeExpenseBtn.classList.add('bg-white'); incomeSourceGroup.classList.remove('hidden'); categoryGroup.classList.add('hidden'); document.querySelector('input[name="income-source"][value="other"]').checked = true; toggleIncomeFields(); } else { typeExpenseBtn.classList.add('bg-red-500', 'text-white'); typeExpenseBtn.classList.remove('bg-white'); typeIncomeBtn.classList.remove('bg-green-500', 'text-white'); typeIncomeBtn.classList.add('bg-white'); incomeSourceGroup.classList.add('hidden'); categoryGroup.classList.remove('hidden'); hoursGroup.classList.add('hidden'); amountGroup.classList.remove('hidden'); amountInput.required = true; hoursInput.required = false; populateCategories(category); } }
+        function populateCategories(selectedCategory) { categorySelect.innerHTML = '<option value="one-time">One-Time Expense</option>'; settings.recurringExpenses.forEach(item => { const option = document.createElement('option'); option.value = item.id; option.textContent = item.description; categorySelect.appendChild(option); }); categorySelect.value = selectedCategory; }
         function toggleIncomeFields() { const selectedSource = document.querySelector('input[name="income-source"]:checked').value; if (selectedSource === 'work') { hoursGroup.classList.remove('hidden'); amountGroup.classList.add('hidden'); amountInput.required = false; hoursInput.required = true; } else { hoursGroup.classList.add('hidden'); amountGroup.classList.remove('hidden'); amountInput.required = true; hoursInput.required = false; } }
         function updateCalculatedIncome() { const hours = parseFloat(hoursInput.value) || 0; const rate = parseFloat(settings.hourlyRate) || 0; calculatedIncomeSpan.textContent = `€${(hours * rate).toFixed(2)}`; }
         
-        // --- INITIAL EVENT LISTENERS ---
         prevMonthBtn.addEventListener('click', () => { currentDate = currentDate.subtract(1, 'month'); renderAll(); });
         nextMonthBtn.addEventListener('click', () => { currentDate = currentDate.add(1, 'month'); renderAll(); });
         saveSettingsBtn.addEventListener('click', () => { saveSettings().then(() => { alert('Settings Saved!'); renderAll(); }); });
@@ -444,9 +229,6 @@
     </script>
 </body>
 </html>
-
-
-
 
 
 
