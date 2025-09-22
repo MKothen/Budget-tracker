@@ -49,7 +49,8 @@
             <form id="auth-form">
                 <div class="mb-4"><label for="email" class="block text-sm font-medium text-gray-400">Email</label><input type="email" id="email" class="input-field mt-1 block w-full px-3 py-2 rounded-md shadow-sm" required></div>
                 <div class="mb-6"><label for="password" class="block text-sm font-medium text-gray-400">Password</label><input type="password" id="password" class="input-field mt-1 block w-full px-3 py-2 rounded-md shadow-sm" required></div>
-                <button type="submit" class="w-full btn-primary py-2 px-4 rounded-md transition-colors">Login</button>
+                <!-- FIX: Added id="auth-button" -->
+                <button type="submit" id="auth-button" class="w-full btn-primary py-2 px-4 rounded-md transition-colors">Login</button>
             </form>
             <p id="auth-error" class="text-red-400 text-sm mt-4 text-center"></p>
             <p class="text-sm text-center mt-4"><a href="#" id="auth-toggle" class="font-medium text-violet-400 hover:text-violet-300">Need an account? Sign up</a></p>
@@ -112,7 +113,10 @@
 
     <!-- Modals -->
     <div id="transaction-modal" class="modal fixed inset-0 bg-black bg-opacity-75 items-center justify-center p-4">
-        <div class="card p-6 w-full max-w-md"><h3 id="modal-title" class="text-xl font-semibold mb-6">Add Transaction</h3><form id="transaction-form"><input type="hidden" id="transaction-date"><input type="hidden" id="transaction-id"><div class="mb-4"><div class="flex rounded-md shadow-sm"><button type="button" data-action="set-tx-type" data-type="income" id="type-income" class="flex-1 py-2 px-4 border border-slate-700 bg-slate-800 rounded-l-md focus:outline-none">Income</button><button type="button" data-action="set-tx-type" data-type="expense" id="type-expense" class="flex-1 py-2 px-4 border border-slate-700 bg-slate-800 rounded-r-md focus:outline-none -ml-px">Expense</button></div></div><div id="income-source-group" class="mb-4 hidden"><label class="block text-sm font-medium text-gray-400 mb-2">Income Type</label><div class="flex space-x-4"><label class="flex items-center"><input type="radio" name="income-source" value="other" class="focus:ring-violet-500 h-4 w-4 text-violet-600 bg-slate-700 border-slate-600" checked><span class="ml-2 text-sm">Fixed Amount</span></label><label class="flex items-center"><input type="radio" name="income-source" value="work" class="focus:ring-violet-500 h-4 w-4 text-violet-600 bg-slate-700 border-slate-600"><span class="ml-2 text-sm">Work (by hours)</span></label></div></div><div id="category-group" class="mb-4 hidden"><label for="category" class="block text-sm font-medium text-gray-400">Category</label><select id="category" class="input-field mt-1 block w-full px-3 py-2 rounded-md"></select></div><div class="mb-4"><label for="description" class="block text-sm font-medium text-gray-400">Description</label><input type="text" id="description" class="input-field mt-1 block w-full px-3 py-2 rounded-md" required></div><div id="amount-group" class="mb-4"><label for="amount" class="block text-sm font-medium text-gray-400">Amount (€)</label><input type="number" id="amount" class="input-field mt-1 block w-full px-3 py-2 rounded-md" step="0.01" required></div><div id="hours-group" class="mb-4 hidden"><label for="hours" class="block text-sm font-medium text-gray-400">Hours Worked</label><input type="number" id="hours" class="input-field mt-1 block w-full px-3 py-2 rounded-md" step="0.1"><p class="text-sm text-gray-500 mt-1">Calculated Income: <span id="calculated-income" class="font-semibold">€0.00</span></p></div><div class="flex justify-end space-x-3 mt-8"><button type="button" data-action="delete-transaction" class="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 hidden">Delete</button><button type="button" data-action="close-modal" class="btn-secondary px-4 py-2 rounded-md">Cancel</button><button type="submit" class="btn-primary px-4 py-2 rounded-md">Save</button></div></form></div>
+        <div class="card p-6 w-full max-w-md"><h3 id="modal-title" class="text-xl font-semibold mb-6">Add Transaction</h3><form id="transaction-form"><input type="hidden" id="transaction-date"><input type="hidden" id="transaction-id"><div class="mb-4"><div class="flex rounded-md shadow-sm"><button type="button" data-action="set-tx-type" data-type="income" id="type-income" class="flex-1 py-2 px-4 border border-slate-700 bg-slate-800 rounded-l-md focus:outline-none">Income</button><button type="button" data-action="set-tx-type" data-type="expense" id="type-expense" class="flex-1 py-2 px-4 border border-slate-700 bg-slate-800 rounded-r-md focus:outline-none -ml-px">Expense</button></div></div><div id="income-source-group" class="mb-4 hidden"><label class="block text-sm font-medium text-gray-400 mb-2">Income Type</label><div class="flex space-x-4"><label class="flex items-center"><input type="radio" name="income-source" value="other" class="focus:ring-violet-500 h-4 w-4 text-violet-600 bg-slate-700 border-slate-600" checked><span class="ml-2 text-sm">Fixed Amount</span></label><label class="flex items-center"><input type="radio" name="income-source" value="work" class="focus:ring-violet-500 h-4 w-4 text-violet-600 bg-slate-700 border-slate-600"><span class="ml-2 text-sm">Work (by hours)</span></label></div></div><div id="category-group" class="mb-4 hidden"><label for="category" class="block text-sm font-medium text-gray-400">Category</label><select id="category" class="input-field mt-1 block w-full px-3 py-2 rounded-md"></select></div><div class="mb-4"><label for="description" class="block text-sm font-medium text-gray-400">Description</label><input type="text" id="description" class="input-field mt-1 block w-full px-3 py-2 rounded-md" required></div><div id="amount-group" class="mb-4"><label for="amount" class="block text-sm font-medium text-gray-400">Amount (€)</label><input type="number" id="amount" class="input-field mt-1 block w-full px-3 py-2 rounded-md" step="0.01" required></div><div id="hours-group" class="mb-4 hidden"><label for="hours" class="block text-sm font-medium text-gray-400">Hours Worked</label><input type="number" id="hours" class="input-field mt-1 block w-full px-3 py-2 rounded-md" step="0.1"><p class="text-sm text-gray-500 mt-1">Calculated Income: <span id="calculated-income" class="font-semibold">€0.00</span></p></div><div class="flex justify-end space-x-3 mt-8">
+            <!-- FIX: Added id="delete-transaction" -->
+            <button type="button" id="delete-transaction" data-action="delete-transaction" class="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 hidden">Delete</button>
+            <button type="button" data-action="close-modal" class="btn-secondary px-4 py-2 rounded-md">Cancel</button><button type="submit" class="btn-primary px-4 py-2 rounded-md">Save</button></div></form></div>
     </div>
     <div id="budget-modal" class="modal fixed inset-0 bg-black bg-opacity-75 items-center justify-center p-4">
         <div class="card p-6 w-full max-w-md"><h3 class="text-xl font-semibold mb-6">Manage Budget</h3><form id="budget-form"><input type="hidden" id="budget-id"><div class="mb-4"><label for="budget-description" class="block text-sm font-medium text-gray-400">Description</label><input type="text" id="budget-description" placeholder="e.g., Groceries" class="input-field mt-1 w-full px-3 py-2 rounded-md" required></div><div class="mb-4"><label for="budget-amount" class="block text-sm font-medium text-gray-400">Monthly Budget (€)</label><input type="number" id="budget-amount" placeholder="e.g., 300" class="input-field mt-1 w-full px-3 py-2 rounded-md" step="0.01" required></div><div class="flex justify-end space-x-3 mt-8"><button type="button" data-action="close-modal" class="btn-secondary px-4 py-2 rounded-md">Cancel</button><button type="submit" class="btn-primary px-4 py-2 rounded-md">Save Budget</button></div></form></div>
@@ -138,68 +142,15 @@
         const db = getFirestore(app);
 
         // --- STATE MANAGEMENT ---
-        const state = {
-            currentDate: dayjs(),
-            transactions: {},
-            settings: { hourlyRate: '', initialBalance: 0, recurringExpenses: [], savingsGoals: [], automaticBills: [] },
-            user: null,
-            unsubscribe: null,
-            expenseChart: null,
-            isLogin: true
-        };
-
+        const state = { currentDate: dayjs(), transactions: {}, settings: { hourlyRate: '', initialBalance: 0, recurringExpenses: [], savingsGoals: [], automaticBills: [] }, user: null, unsubscribe: null, expenseChart: null, isLogin: true };
         const $ = (selector) => document.getElementById(selector);
 
-        // --- RENDER FUNCTIONS (UI LOGIC) ---
-        async function render() {
-            if (!state.user) return;
-            await addAutomaticBillsForMonth();
-            renderCalendar();
-            renderSummary();
-            renderBudgets();
-            renderGoals();
-            renderBills();
-            renderChart();
-        }
-
-        function renderCalendar() {
-            const calendarBody = $('calendar-body');
-            calendarBody.innerHTML = '';
-            $('current-month-year').textContent = state.currentDate.format('MMMM YYYY');
-            const month = state.currentDate.month(), year = state.currentDate.year(), firstDayOfMonth = state.currentDate.startOf('month').day(), daysInMonth = state.currentDate.daysInMonth();
-            let html = Array.from({length: firstDayOfMonth}, (_, i) => createDayCell(state.currentDate.startOf('month').subtract(firstDayOfMonth - i, 'day').format('YYYY-MM-DD'), true)).join('');
-            html += Array.from({length: daysInMonth}, (_, i) => createDayCell(state.currentDate.date(i + 1).format('YYYY-MM-DD'))).join('');
-            const totalCells = firstDayOfMonth + daysInMonth;
-            const nextMonthDays = (7 - (totalCells % 7)) % 7;
-            html += Array.from({length: nextMonthDays}, (_, i) => createDayCell(state.currentDate.endOf('month').add(i + 1, 'day').format('YYYY-MM-DD'), true)).join('');
-            calendarBody.innerHTML = html;
-            renderTransactionsOnCalendar();
-        }
-
-        function createDayCell(dateStr, isOtherMonth = false) {
-            const day = dayjs(dateStr).date();
-            const today = dayjs().format('YYYY-MM-DD');
-            let dayClass = 'calendar-day relative p-2 border-r border-b border-slate-700';
-            if (!isOtherMonth) dayClass += ' hover:bg-slate-700 cursor-pointer'; else dayClass += ' other-month';
-            const dayNumberHtml = dateStr === today ? `<div class="absolute top-1 right-1 text-xs sm:text-sm bg-violet-600 text-white rounded-full h-6 w-6 flex items-center justify-center font-semibold">${day}</div>` : `<div class="text-xs sm:text-sm text-right text-gray-400">${day}</div>`;
-            return `<div class="${dayClass}" data-date="${dateStr}" data-action="add-transaction">${dayNumberHtml}<div class="transaction-list mt-8 text-xs space-y-1"></div></div>`;
-        }
-        
-        function renderTransactionsOnCalendar() {
-            for (const date in state.transactions) {
-                const dayCell = document.querySelector(`.calendar-day[data-date="${date}"]`);
-                if (dayCell) {
-                    const list = dayCell.querySelector('.transaction-list');
-                    list.innerHTML = state.transactions[date].map(t => `<div class="transaction-item p-1 rounded text-white ${t.type === 'income' ? 'bg-green-600' : (t.category?.startsWith('goal_') ? 'bg-blue-600' : 'bg-red-600')}" data-id="${t.id}" data-date="${date}" data-action="edit-transaction" title="${t.description}: €${t.amount.toFixed(2)}">${t.description}</div>`).join('');
-                }
-            }
-        }
-        
-        function renderSummary() {
-            const { totalIncome, totalExpenses, net, cashFlow } = calculateSummary();
-            $('summary-container').innerHTML = `<div class="flex justify-between items-center"><span class="text-gray-400">Income:</span><span class="font-bold text-green-400">€${totalIncome.toFixed(2)}</span></div><div class="flex justify-between items-center"><span class="text-gray-400">Expenses:</span><span class="font-bold text-red-400">€${totalExpenses.toFixed(2)}</span></div><hr class="border-slate-700"><div class="flex justify-between items-center text-lg"><span class="font-semibold">Net:</span><span class="font-bold ${net >= 0 ? 'text-green-400' : 'text-red-400'}">€${net.toFixed(2)}</span></div><div class="flex justify-between items-center text-lg"><span class="font-semibold">Cash Flow:</span><span class="font-bold ${cashFlow >= 0 ? 'text-gray-200' : 'text-red-400'}">€${cashFlow.toFixed(2)}</span></div>`;
-        }
-
+        // --- RENDER FUNCTIONS ---
+        async function render() { if (!state.user) return; await addAutomaticBillsForMonth(); renderCalendar(); renderSummary(); renderBudgets(); renderGoals(); renderBills(); renderChart(); }
+        function renderCalendar() { const calendarBody = $('calendar-body'); calendarBody.innerHTML = ''; $('current-month-year').textContent = state.currentDate.format('MMMM YYYY'); const month = state.currentDate.month(), year = state.currentDate.year(), firstDayOfMonth = state.currentDate.startOf('month').day(), daysInMonth = state.currentDate.daysInMonth(); let html = Array.from({length: firstDayOfMonth}, (_, i) => createDayCell(state.currentDate.startOf('month').subtract(firstDayOfMonth - i, 'day').format('YYYY-MM-DD'), true)).join(''); html += Array.from({length: daysInMonth}, (_, i) => createDayCell(state.currentDate.date(i + 1).format('YYYY-MM-DD'))).join(''); const totalCells = firstDayOfMonth + daysInMonth; const nextMonthDays = (7 - (totalCells % 7)) % 7; html += Array.from({length: nextMonthDays}, (_, i) => createDayCell(state.currentDate.endOf('month').add(i + 1, 'day').format('YYYY-MM-DD'), true)).join(''); calendarBody.innerHTML = html; renderTransactionsOnCalendar(); }
+        function createDayCell(dateStr, isOtherMonth = false) { const day = dayjs(dateStr).date(); const today = dayjs().format('YYYY-MM-DD'); let dayClass = 'calendar-day relative p-2 border-r border-b border-slate-700'; if (!isOtherMonth) dayClass += ' hover:bg-slate-700 cursor-pointer'; else dayClass += ' other-month'; const dayNumberHtml = dateStr === today ? `<div class="absolute top-1 right-1 text-xs sm:text-sm bg-violet-600 text-white rounded-full h-6 w-6 flex items-center justify-center font-semibold">${day}</div>` : `<div class="text-xs sm:text-sm text-right text-gray-400">${day}</div>`; return `<div class="${dayClass}" data-date="${dateStr}" data-action="add-transaction">${dayNumberHtml}<div class="transaction-list mt-8 text-xs space-y-1"></div></div>`; }
+        function renderTransactionsOnCalendar() { for (const date in state.transactions) { const dayCell = document.querySelector(`.calendar-day[data-date="${date}"]`); if (dayCell) { const list = dayCell.querySelector('.transaction-list'); list.innerHTML = state.transactions[date].map(t => `<div class="transaction-item p-1 rounded text-white ${t.type === 'income' ? 'bg-green-600' : (t.category?.startsWith('goal_') ? 'bg-blue-600' : 'bg-red-600')}" data-id="${t.id}" data-date="${date}" data-action="edit-transaction" title="${t.description}: €${t.amount.toFixed(2)}">${t.description}</div>`).join(''); } } }
+        function renderSummary() { const { totalIncome, totalExpenses, net, cashFlow } = calculateSummary(); $('summary-container').innerHTML = `<div class="flex justify-between items-center"><span class="text-gray-400">Income:</span><span class="font-bold text-green-400">€${totalIncome.toFixed(2)}</span></div><div class="flex justify-between items-center"><span class="text-gray-400">Expenses:</span><span class="font-bold text-red-400">€${totalExpenses.toFixed(2)}</span></div><hr class="border-slate-700"><div class="flex justify-between items-center text-lg"><span class="font-semibold">Net:</span><span class="font-bold ${net >= 0 ? 'text-green-400' : 'text-red-400'}">€${net.toFixed(2)}</span></div><div class="flex justify-between items-center text-lg"><span class="font-semibold">Cash Flow:</span><span class="font-bold ${cashFlow >= 0 ? 'text-gray-200' : 'text-red-400'}">€${cashFlow.toFixed(2)}</span></div>`; }
         function renderBudgets() { const list = $('recurring-expenses-list'); if (!state.settings.recurringExpenses?.length) { list.innerHTML = `<p class="text-sm text-center text-gray-400">No budgets set.</p>`; return; } const monthlyTransactions = Object.values(state.transactions).flat().filter(t => dayjs(t.date).month() === state.currentDate.month() && dayjs(t.date).year() === state.currentDate.year()); list.innerHTML = state.settings.recurringExpenses.map(b => { const spent = monthlyTransactions.filter(t => t.category === b.id).reduce((acc, t) => acc + t.amount, 0); const p = b.amount > 0 ? (spent / b.amount) * 100 : 0; const c = p > 100 ? 'bg-red-500' : p > 75 ? 'bg-yellow-500' : 'bg-green-500'; return `<div class="bg-slate-800 p-3 rounded-md"><div class="flex justify-between items-center mb-2"><p class="font-medium">${b.description}</p><div class="flex space-x-2"><button class="text-sm font-medium text-violet-400 hover:text-violet-300" data-action="edit-budget" data-id="${b.id}">Edit</button><button class="text-sm font-medium text-red-400 hover:text-red-300" data-action="delete-budget" data-id="${b.id}">Del</button></div></div><div class="text-sm text-gray-400 mb-2"><span>Spent: €${spent.toFixed(2)}</span> / <span>€${b.amount.toFixed(2)}</span></div><div class="progress-bar h-2 w-full"><div class="progress-bar-inner ${c}" style="width: ${Math.min(p, 100)}%;"></div></div></div>`; }).join(''); }
         function renderGoals() { const list = $('savings-goals-list'); if (!state.settings.savingsGoals?.length) { list.innerHTML = `<p class="text-sm text-center text-gray-400">No goals set.</p>`; return; } const allTransactions = Object.values(state.transactions).flat(); list.innerHTML = state.settings.savingsGoals.map(g => { const saved = allTransactions.filter(t => t.category === `goal_${g.id}`).reduce((acc, t) => acc + t.amount, 0); const p = g.target > 0 ? (saved / g.target) * 100 : 0; return `<div class="bg-slate-800 p-3 rounded-md"><div class="flex justify-between items-center mb-2"><p class="font-medium">${g.description}</p><div class="flex space-x-2"><button class="text-sm font-medium text-green-400 hover:text-green-300" data-action="contribute-goal" data-id="${g.id}">Add</button><button class="text-sm font-medium text-violet-400 hover:text-violet-300" data-action="edit-goal" data-id="${g.id}">Edit</button><button class="text-sm font-medium text-red-400 hover:text-red-300" data-action="delete-goal" data-id="${g.id}">Del</button></div></div><div class="text-sm text-gray-400 mb-2"><span>Saved: €${saved.toFixed(2)}</span> / <span>€${g.target.toFixed(2)}</span></div><div class="progress-bar h-2 w-full"><div class="progress-bar-inner bg-blue-500" style="width: ${Math.min(p, 100)}%;"></div></div></div>`; }).join(''); }
         function renderBills() { const list = $('automatic-bills-list'); if (!state.settings.automaticBills?.length) { list.innerHTML = `<p class="text-sm text-center text-gray-400">No bills set.</p>`; return; } list.innerHTML = state.settings.automaticBills.map(b => `<div class="flex justify-between items-center bg-slate-800 p-2 rounded-md text-sm"><p>${b.description} - €${b.amount} on day ${b.day}</p><div class="flex space-x-2"><button class="text-sm font-medium text-violet-400 hover:text-violet-300" data-action="edit-bill" data-id="${b.id}">Edit</button><button class="text-sm font-medium text-red-400 hover:text-red-300" data-action="delete-bill" data-id="${b.id}">Del</button></div></div>`).join(''); }
@@ -238,7 +189,7 @@
                 case 'prev-month': state.currentDate = state.currentDate.subtract(1, 'month'); render(); break;
                 case 'next-month': state.currentDate = state.currentDate.add(1, 'month'); render(); break;
                 case 'save-settings': saveSettings().then(() => alert('Settings saved!')); break;
-                case 'add-transaction': openTransactionModal(date); break;
+                case 'add-transaction': if(!target.classList.contains('other-month')) openTransactionModal(date); break;
                 case 'edit-transaction': openTransactionModal(date, id); break;
                 case 'delete-transaction': handleDeleteTransaction(); break;
                 case 'add-budget': openBudgetModal(); break;
@@ -271,6 +222,10 @@
         // --- MODAL & FORM LOGIC ---
         function openTransactionModal(date, id=null) {
             const form = $('transaction-form'); form.reset();
+            // FIX: Manually hide conditional sections
+            $('income-source-group').classList.add('hidden');
+            $('category-group').classList.add('hidden');
+            $('hours-group').classList.add('hidden');
             $('transaction-date').value = date; $('transaction-id').value = id || '';
             let type = 'expense', category = 'one-time';
             if (id) {
@@ -328,6 +283,4 @@
     </script>
 </body>
 </html>
-
-
 
