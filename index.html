@@ -2,393 +2,557 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>Personal Budget Tracker</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Personal Budget Planner</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <!-- For "Add to Home Screen" -->
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="apple-mobile-web-app-title" content="Budget">
-    <link rel="apple-touch-icon" href="https://placehold.co/180x180/1F2937/7DD3FC?text=💰">
-
+    <script src="https://cdn.jsdelivr.net/npm/dayjs@1/dayjs.min.js"></script>
     <style>
-        body {
-            font-family: 'Inter', sans-serif;
-            -webkit-tap-highlight-color: transparent; /* Removes blue tap highlight on iOS */
-        }
-        /* Animations for adding/removing categories */
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(-10px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-        .animate-fade-in {
-            animation: fadeIn 0.3s ease-out forwards;
-        }
-
-        @keyframes fadeOut {
-            from { opacity: 1; transform: scale(1); }
-            to { opacity: 0; transform: scale(0.9); }
-        }
-        .animate-fade-out {
-            animation: fadeOut 0.3s ease-in forwards;
-        }
-        
-        /* Animation for input error feedback */
-        @keyframes shake {
-          10%, 90% { transform: translate3d(-1px, 0, 0); }
-          20%, 80% { transform: translate3d(2px, 0, 0); }
-          30%, 50%, 70% { transform: translate3d(-4px, 0, 0); }
-          40%, 60% { transform: translate3d(4px, 0, 0); }
-        }
-        .animate-shake {
-            animation: shake 0.5s cubic-bezier(.36,.07,.19,.97) both;
-        }
+        body { font-family: 'Inter', sans-serif; background-color: #f3f4f6; }
+        .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); }
+        .calendar-day { min-height: 120px; }
+        .calendar-day.other-month { background-color: #f9fafb; color: #9ca3af; }
+        .modal, #auth-container { display: none; }
+        .modal.active, #auth-container.active { display: flex; }
+        #app-container.hidden { display: none; }
     </style>
 </head>
-<body class="bg-gray-900 text-white p-4 sm:p-6 md:p-8">
+<body class="antialiased text-gray-800">
 
-    <div class="max-w-4xl mx-auto">
-        <!-- Header -->
-        <header class="text-center mb-8">
-            <h1 class="text-3xl sm:text-4xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-teal-300">Your Monthly Budget</h1>
-            <p class="text-gray-400 mt-2">All data is saved automatically on this device.</p>
-        </header>
-
-        <!-- Main Grid Layout -->
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-
-            <!-- Left Column: Settings & Summary -->
-            <div class="md:col-span-1 space-y-6">
-                <!-- Settings Card -->
-                <div class="bg-gray-800 p-6 rounded-2xl shadow-lg">
-                    <h2 class="text-xl font-bold mb-4 border-b border-gray-700 pb-2">⚙️ Settings</h2>
-                    <div class="space-y-4">
-                        <label for="hourlyRate" class="block text-sm font-medium text-gray-300">Your Hourly Rate (€)</label>
-                        <input type="number" id="hourlyRate" value="15.50" step="0.01" class="w-full bg-gray-700 text-white p-3 rounded-lg border border-gray-600 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition">
-                    </div>
+    <!-- Authentication Overlay -->
+    <div id="auth-container" class="active fixed inset-0 bg-gray-200 items-center justify-center p-4">
+        <div class="bg-white rounded-lg shadow-xl p-8 w-full max-w-sm">
+            <h2 id="auth-title" class="text-2xl font-bold text-center mb-6 text-gray-800">Login</h2>
+            <form id="auth-form">
+                <div class="mb-4">
+                    <label for="email" class="block text-sm font-medium text-gray-700">Email</label>
+                    <input type="email" id="email" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500" required>
                 </div>
-
-                <!-- Summary Card -->
-                <div class="bg-gray-800 p-6 rounded-2xl shadow-lg sticky top-6">
-                    <h2 class="text-xl font-bold mb-4 border-b border-gray-700 pb-2">📊 Monthly Summary</h2>
-                    <div class="space-y-4">
-                        <div>
-                            <p class="text-sm text-gray-400">Total Income</p>
-                            <p id="totalIncome" class="text-2xl font-semibold text-green-400">€0.00</p>
-                        </div>
-                        <div>
-                            <p class="text-sm text-gray-400">Total Expenses</p>
-                            <p id="totalExpenses" class="text-2xl font-semibold text-red-400">€0.00</p>
-                        </div>
-                        <div class="pt-4 border-t border-gray-700">
-                            <p class="text-sm text-gray-400">Net Balance</p>
-                            <p id="netBalance" class="text-3xl font-bold">€0.00</p>
-                        </div>
-                    </div>
+                <div class="mb-6">
+                    <label for="password" class="block text-sm font-medium text-gray-700">Password</label>
+                    <input type="password" id="password" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500" required>
                 </div>
-            </div>
+                <button type="submit" id="auth-button" class="w-full bg-indigo-600 text-white py-2 px-4 rounded-md hover:bg-indigo-700 transition-colors">Login</button>
+            </form>
+            <p id="auth-error" class="text-red-500 text-sm mt-4 text-center"></p>
+            <p class="text-sm text-center mt-4">
+                <a href="#" id="auth-toggle" class="font-medium text-indigo-600 hover:text-indigo-500">Need an account? Sign up</a>
+            </p>
+        </div>
+    </div>
 
-            <!-- Right Column: Income & Expenses -->
-            <div class="md:col-span-2 space-y-6">
-                <!-- Income Card -->
-                <div class="bg-gray-800 p-6 rounded-2xl shadow-lg">
-                    <h2 class="text-xl font-bold mb-4">💰 Income</h2>
-                    <div class="space-y-6">
-                        <div>
-                            <h3 class="font-semibold text-lg mb-3 text-blue-300">Job Income (Zero-Hour)</h3>
-                            <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-4">
-                                <!-- Weeks 1-5 -->
-                                <div>
-                                    <label for="week1" class="block text-xs font-medium text-gray-300 mb-1">Week 1 Hours</label>
-                                    <input type="number" id="week1" placeholder="0" class="income-hours w-full bg-gray-700 text-white p-2 rounded-lg text-center border border-gray-600">
-                                    <div id="pay1" class="text-center text-xs mt-1 text-gray-400">€0.00</div>
-                                </div>
-                                <div>
-                                    <label for="week2" class="block text-xs font-medium text-gray-300 mb-1">Week 2 Hours</label>
-                                    <input type="number" id="week2" placeholder="0" class="income-hours w-full bg-gray-700 text-white p-2 rounded-lg text-center border border-gray-600">
-                                    <div id="pay2" class="text-center text-xs mt-1 text-gray-400">€0.00</div>
-                                </div>
-                                <div>
-                                    <label for="week3" class="block text-xs font-medium text-gray-300 mb-1">Week 3 Hours</label>
-                                    <input type="number" id="week3" placeholder="0" class="income-hours w-full bg-gray-700 text-white p-2 rounded-lg text-center border border-gray-600">
-                                    <div id="pay3" class="text-center text-xs mt-1 text-gray-400">€0.00</div>
-                                </div>
-                                <div>
-                                    <label for="week4" class="block text-xs font-medium text-gray-300 mb-1">Week 4 Hours</label>
-                                    <input type="number" id="week4" placeholder="0" class="income-hours w-full bg-gray-700 text-white p-2 rounded-lg text-center border border-gray-600">
-                                    <div id="pay4" class="text-center text-xs mt-1 text-gray-400">€0.00</div>
-                                </div>
-                                <div>
-                                    <label for="week5" class="block text-xs font-medium text-gray-300 mb-1">Week 5 Hours</label>
-                                    <input type="number" id="week5" placeholder="0" class="income-hours w-full bg-gray-700 text-white p-2 rounded-lg text-center border border-gray-600">
-                                    <div id="pay5" class="text-center text-xs mt-1 text-gray-400">€0.00</div>
-                                </div>
-                            </div>
+    <!-- Main App Container -->
+    <div id="app-container" class="hidden">
+         <div class="container mx-auto p-4 sm:p-6 lg:p-8">
+            <header class="text-center mb-8 relative">
+                <h1 class="text-3xl font-bold text-gray-900">Personal Budget Planner</h1>
+                <p class="text-gray-600 mt-1">A simple way to manage your finances, centered around your calendar.</p>
+                <button id="logout-button" class="absolute top-0 right-0 bg-red-500 text-white py-1 px-3 rounded-md hover:bg-red-600 text-sm">Logout</button>
+            </header>
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                 <main class="lg:col-span-2 bg-white p-6 rounded-lg shadow-md">
+                    <div id="calendar-container">
+                        <div class="flex items-center justify-between mb-6">
+                            <button id="prev-month" class="px-3 py-1 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 transition-colors">&lt;</button>
+                            <h2 id="current-month-year" class="text-xl font-semibold"></h2>
+                            <button id="next-month" class="px-3 py-1 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 transition-colors">&gt;</button>
                         </div>
-                         <div class="border-t border-gray-700"></div>
-                        <div>
-                             <h3 class="font-semibold text-lg mb-3 text-blue-300">Other Income</h3>
-                             <div id="predefined-incomes-container" class="space-y-3">
-                                 <div class="flex items-center justify-between">
-                                     <label for="toeslagen" class="text-gray-300">Toeslagen</label>
-                                     <input type="number" id="toeslagen" placeholder="0.00" class="income-item w-32 bg-gray-700 text-white p-2 rounded-lg text-right border border-gray-600">
-                                 </div>
-                                 <div class="flex items-center justify-between">
-                                     <label for="duo" class="text-gray-300">DUO</label>
-                                     <input type="number" id="duo" placeholder="0.00" class="income-item w-32 bg-gray-700 text-white p-2 rounded-lg text-right border border-gray-600">
-                                 </div>
-                                 <div class="flex items-center justify-between">
-                                     <label for="dad" class="text-gray-300">Support from Dad</label>
-                                     <input type="number" id="dad" placeholder="0.00" class="income-item w-32 bg-gray-700 text-white p-2 rounded-lg text-right border border-gray-600">
-                                 </div>
-                             </div>
+                        <div class="calendar-grid grid-cols-7 text-center font-semibold text-gray-600 text-sm mb-2">
+                            <div>Sun</div><div>Mon</div><div>Tue</div><div>Wed</div><div>Thu</div><div>Fri</div><div>Sat</div>
                         </div>
-                        <div class="border-t border-gray-700"></div>
-                        <div>
-                            <h3 class="font-semibold text-lg text-blue-300 mb-3">Your Custom Income Categories</h3>
-                            <div id="custom-incomes-container" class="space-y-3 mb-4"></div>
-                            <div class="flex gap-2 items-center">
-                                <input type="text" id="new-income-name" placeholder="New category name..." class="flex-grow bg-gray-700 text-white p-2 rounded-lg border border-gray-600 focus:ring-2 focus:ring-blue-500 transition">
-                                <button id="add-income-btn" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg transition-colors shrink-0">Add</button>
-                            </div>
+                        <div id="calendar-body" class="calendar-grid border-t border-l border-gray-200"></div>
+                    </div>
+                </main>
+                <aside class="space-y-8">
+                    <div class="bg-white p-6 rounded-lg shadow-md">
+                        <h3 class="text-lg font-semibold mb-4 border-b pb-2">Monthly Summary</h3>
+                        <div class="space-y-3">
+                            <div class="flex justify-between items-center"><span class="text-gray-600">Total Income:</span><span id="summary-income" class="font-bold text-green-600">€0.00</span></div>
+                            <div class="flex justify-between items-center"><span class="text-gray-600">Total Expenses:</span><span id="summary-expenses" class="font-bold text-red-600">€0.00</span></div>
+                            <hr>
+                            <div class="flex justify-between items-center text-lg"><span class="font-semibold">Net Balance:</span><span id="summary-net" class="font-bold">€0.00</span></div>
+                            <div class="flex justify-between items-center text-lg"><span class="font-semibold">Cash Flow Today:</span><span id="summary-cashflow" class="font-bold">€0.00</span></div>
                         </div>
                     </div>
-                </div>
-
-                <!-- Expenses Card -->
-                <div class="bg-gray-800 p-6 rounded-2xl shadow-lg">
-                    <h2 class="text-xl font-bold mb-4">💸 Expenses</h2>
-                    <div class="space-y-6">
-                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-4" id="predefined-expenses-container">
-                             <div class="space-y-3">
-                                <h3 class="font-semibold text-lg text-blue-300">Fixed</h3>
-                                 <div class="flex items-center justify-between">
-                                     <label for="rent" class="text-gray-300">Rent</label>
-                                     <input type="number" id="rent" placeholder="0.00" class="expense-item w-32 bg-gray-700 text-white p-2 rounded-lg text-right border border-gray-600">
-                                 </div>
-                                 <div class="flex items-center justify-between">
-                                     <label for="health" class="text-gray-300">Health Insurance</label>
-                                     <input type="number" id="health" placeholder="0.00" class="expense-item w-32 bg-gray-700 text-white p-2 rounded-lg text-right border border-gray-600">
-                                 </div>
-                                 <div class="flex items-center justify-between">
-                                     <label for="subscriptions" class="text-gray-300">Subscriptions</label>
-                                     <input type="number" id="subscriptions" placeholder="0.00" class="expense-item w-32 bg-gray-700 text-white p-2 rounded-lg text-right border border-gray-600">
-                                 </div>
+                    <div class="bg-white p-6 rounded-lg shadow-md">
+                        <h3 class="text-lg font-semibold mb-4 border-b pb-2">Settings</h3>
+                        <div class="space-y-4">
+                            <div>
+                                <label for="hourly-rate" class="block text-sm font-medium text-gray-700 mb-1">Your Hourly Rate (€)</label>
+                                <input type="number" id="hourly-rate" class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500" placeholder="e.g., 15.50" step="0.01">
                             </div>
-                            <div class="space-y-3">
-                                 <h3 class="font-semibold text-lg text-blue-300">Variable</h3>
-                                 <div class="flex items-center justify-between">
-                                     <label for="groceries" class="text-gray-300">Groceries</label>
-                                     <input type="number" id="groceries" placeholder="0.00" class="expense-item w-32 bg-gray-700 text-white p-2 rounded-lg text-right border border-gray-600">
-                                 </div>
-                                 <div class="flex items-center justify-between">
-                                     <label for="transport" class="text-gray-300">Transport</label>
-                                     <input type="number" id="transport" placeholder="0.00" class="expense-item w-32 bg-gray-700 text-white p-2 rounded-lg text-right border border-gray-600">
-                                 </div>
-                                 <div class="flex items-center justify-between">
-                                     <label for="personal" class="text-gray-300">Personal/Fun</label>
-                                     <input type="number" id="personal" placeholder="0.00" class="expense-item w-32 bg-gray-700 text-white p-2 rounded-lg text-right border border-gray-600">
-                                 </div>
+                            <div>
+                                <label for="initial-balance" class="block text-sm font-medium text-gray-700 mb-1">Initial Balance (€)</label>
+                                <input type="number" id="initial-balance" class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500" placeholder="e.g., 500.00" step="0.01">
                             </div>
-                        </div>
-                        <div class="border-t border-gray-700"></div>
-                        <div>
-                            <h3 class="font-semibold text-lg text-blue-300 mb-3">Your Custom Expense Categories</h3>
-                            <div id="custom-expenses-container" class="space-y-3 mb-4"></div>
-                            <div class="flex gap-2 items-center">
-                                <input type="text" id="new-expense-name" placeholder="New category name..." class="flex-grow bg-gray-700 text-white p-2 rounded-lg border border-gray-600 focus:ring-2 focus:ring-blue-500 transition">
-                                <button id="add-expense-btn" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg transition-colors shrink-0">Add</button>
-                            </div>
+                            <button id="save-settings" class="w-full bg-indigo-600 text-white py-2 px-4 rounded-md hover:bg-indigo-700 transition-colors">Save Settings</button>
                         </div>
                     </div>
-                </div>
+                    <div id="daily-breakdown" class="bg-white p-6 rounded-lg shadow-md hidden">
+                        <h3 class="text-lg font-semibold mb-4 border-b pb-2">Daily Breakdown</h3>
+                        <p class="text-sm text-gray-500 mb-2">Cash flow for <span id="daily-breakdown-date" class="font-bold"></span></p>
+                        <div id="daily-breakdown-content"></div>
+                    </div>
+                </aside>
             </div>
         </div>
     </div>
 
-    <script>
-        document.addEventListener('DOMContentLoaded', () => {
-            const STORAGE_KEY = 'personalBudgetTrackerData';
+    <!-- Transaction Modal -->
+    <div id="transaction-modal" class="modal fixed inset-0 bg-gray-800 bg-opacity-75 items-center justify-center p-4">
+        <div class="bg-white rounded-lg shadow-xl p-6 w-full max-w-md">
+             <h3 id="modal-title" class="text-xl font-semibold mb-6">Add Transaction</h3>
+            <form id="transaction-form">
+                <input type="hidden" id="transaction-date">
+                <input type="hidden" id="transaction-id">
+                <div class="mb-4"><div class="flex rounded-md shadow-sm"><button type="button" id="type-income" class="flex-1 py-2 px-4 border border-gray-300 rounded-l-md focus:outline-none">Income</button><button type="button" id="type-expense" class="flex-1 py-2 px-4 border border-gray-300 rounded-r-md focus:outline-none -ml-px">Expense</button></div></div>
+                <div id="income-source-group" class="mb-4 hidden"><label class="block text-sm font-medium text-gray-700 mb-2">Income Type</label><div class="flex space-x-4"><label class="flex items-center"><input type="radio" name="income-source" value="other" class="focus:ring-indigo-500 h-4 w-4 text-indigo-600 border-gray-300" checked><span class="ml-2 text-sm text-gray-700">Fixed Amount</span></label><label class="flex items-center"><input type="radio" name="income-source" value="work" class="focus:ring-indigo-500 h-4 w-4 text-indigo-600 border-gray-300"><span class="ml-2 text-sm text-gray-700">Work (by hours)</span></label></div></div>
+                <div class="mb-4"><label for="description" class="block text-sm font-medium text-gray-700">Description</label><input type="text" id="description" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500" required></div>
+                <div id="amount-group" class="mb-4"><label for="amount" class="block text-sm font-medium text-gray-700">Amount (€)</label><input type="number" id="amount" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500" step="0.01" required></div>
+                <div id="hours-group" class="mb-4 hidden"><label for="hours" class="block text-sm font-medium text-gray-700">Hours Worked</label><input type="number" id="hours" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500" step="0.1"><p class="text-sm text-gray-500 mt-1">Calculated Income: <span id="calculated-income" class="font-semibold">€0.00</span></p></div>
+                <div class="flex justify-end space-x-3 mt-8"><button type="button" id="delete-transaction" class="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 hidden">Delete</button><button type="button" id="cancel-transaction" class="px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300">Cancel</button><button type="submit" id="save-transaction" class="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700">Save</button></div>
+            </form>
+        </div>
+    </div>
 
-            // --- Function to save all data to localStorage ---
-            function saveData() {
-                const customIncomes = [];
-                document.querySelectorAll('#custom-incomes-container .custom-income-row').forEach(row => {
-                    customIncomes.push({ name: row.querySelector('label').textContent, value: row.querySelector('input').value });
-                });
+    <script type="module">
+        // Firebase Imports
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-app.js";
+        import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-auth.js";
+        import { getFirestore, doc, setDoc, getDoc, collection, addDoc, onSnapshot, deleteDoc, updateDoc } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-firestore.js";
 
-                const customExpenses = [];
-                document.querySelectorAll('#custom-expenses-container .custom-expense-row').forEach(row => {
-                    customExpenses.push({ name: row.querySelector('label').textContent, value: row.querySelector('input').value });
-                });
+        // Your web app's Firebase configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyDzeI6mMuICNJdO_G2F7fiGFlQhyo8RWM8",
+            authDomain: "budgeting-b3974.firebaseapp.com",
+            projectId: "budgeting-b3974",
+            storageBucket: "budgeting-b3974.appspot.com",
+            messagingSenderId: "462817466291",
+            appId: "1:462817466291:web:13260b80355f9d0b559dc6"
+        };
 
-                const data = {
-                    hourlyRate: document.getElementById('hourlyRate').value,
-                    weeklyHours: Array.from(document.querySelectorAll('.income-hours')).map(input => input.value),
-                    predefinedIncomes: Array.from(document.querySelectorAll('#predefined-incomes-container .income-item')).map(input => ({ id: input.id, value: input.value })),
-                    predefinedExpenses: Array.from(document.querySelectorAll('#predefined-expenses-container .expense-item')).map(input => ({ id: input.id, value: input.value })),
-                    customIncomes: customIncomes,
-                    customExpenses: customExpenses
-                };
+        // Initialize Firebase
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
 
-                localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
-            }
+        // Global variables
+        let currentDate = dayjs();
+        let transactions = {};
+        let settings = { hourlyRate: '', initialBalance: 0 };
+        let currentTransactionType = 'expense';
+        let currentUserId = null;
+        let unsubscribeTransactions;
 
-            // --- Function to load data from localStorage ---
-            function loadData() {
-                const savedData = localStorage.getItem(STORAGE_KEY);
-                if (!savedData) return;
+        // DOM Elements (Auth)
+        const authContainer = document.getElementById('auth-container');
+        const appContainer = document.getElementById('app-container');
+        const authForm = document.getElementById('auth-form');
+        const authTitle = document.getElementById('auth-title');
+        const authButton = document.getElementById('auth-button');
+        const authToggle = document.getElementById('auth-toggle');
+        const authError = document.getElementById('auth-error');
+        const logoutButton = document.getElementById('logout-button');
+        const emailInput = document.getElementById('email');
+        const passwordInput = document.getElementById('password');
 
-                const data = JSON.parse(savedData);
+        // DOM Elements (App)
+        const calendarBody = document.getElementById('calendar-body');
+        const currentMonthYear = document.getElementById('current-month-year');
+        const prevMonthBtn = document.getElementById('prev-month');
+        const nextMonthBtn = document.getElementById('next-month');
+        const hourlyRateInput = document.getElementById('hourly-rate');
+        const initialBalanceInput = document.getElementById('initial-balance');
+        const saveSettingsBtn = document.getElementById('save-settings');
+        const modal = document.getElementById('transaction-modal');
+        const modalTitle = document.getElementById('modal-title');
+        const transactionForm = document.getElementById('transaction-form');
+        const transactionDateInput = document.getElementById('transaction-date');
+        const transactionIdInput = document.getElementById('transaction-id');
+        const descriptionInput = document.getElementById('description');
+        const amountInput = document.getElementById('amount');
+        const hoursInput = document.getElementById('hours');
+        const typeIncomeBtn = document.getElementById('type-income');
+        const typeExpenseBtn = document.getElementById('type-expense');
+        const incomeSourceGroup = document.getElementById('income-source-group');
+        const incomeSourceRadios = document.querySelectorAll('input[name="income-source"]');
+        const calculatedIncomeSpan = document.getElementById('calculated-income');
+        const cancelBtn = document.getElementById('cancel-transaction');
+        const deleteBtn = document.getElementById('delete-transaction');
+        
+        // --- AUTHENTICATION LOGIC ---
 
-                document.getElementById('hourlyRate').value = data.hourlyRate || '15.50';
-                
-                if (data.weeklyHours) {
-                    document.querySelectorAll('.income-hours').forEach((input, index) => { input.value = data.weeklyHours[index] || ''; });
-                }
-                
-                if (data.predefinedIncomes) {
-                    data.predefinedIncomes.forEach(item => { const input = document.getElementById(item.id); if (input) input.value = item.value || ''; });
-                }
+        let isLoginMode = true;
 
-                if (data.predefinedExpenses) {
-                    data.predefinedExpenses.forEach(item => { const input = document.getElementById(item.id); if (input) input.value = item.value || ''; });
-                }
-
-                if (data.customIncomes) {
-                    data.customIncomes.forEach(item => { addIncomeCategory(item.name, item.value); });
-                }
-
-                if (data.customExpenses) {
-                    data.customExpenses.forEach(item => { addExpenseCategory(item.name, item.value); });
-                }
-            }
-
-            // --- Calculation Logic ---
-            function calculateBudget() {
-                const hourlyRate = parseFloat(document.getElementById('hourlyRate').value) || 0;
-                let totalJobIncome = 0;
-                document.querySelectorAll('.income-hours').forEach((input, index) => {
-                    const hours = parseFloat(input.value) || 0;
-                    const weeklyPay = hours * hourlyRate;
-                    totalJobIncome += weeklyPay;
-                    document.getElementById(`pay${index + 1}`).textContent = `€${weeklyPay.toFixed(2)}`;
-                });
-
-                let totalOtherIncome = 0;
-                document.querySelectorAll('.income-item').forEach(input => totalOtherIncome += parseFloat(input.value) || 0);
-                
-                const finalTotalIncome = totalJobIncome + totalOtherIncome;
-
-                let finalTotalExpenses = 0;
-                document.querySelectorAll('.expense-item').forEach(input => finalTotalExpenses += parseFloat(input.value) || 0);
-
-                const netBalance = finalTotalIncome - finalTotalExpenses;
-
-                document.getElementById('totalIncome').textContent = `€${finalTotalIncome.toFixed(2)}`;
-                document.getElementById('totalExpenses').textContent = `€${finalTotalExpenses.toFixed(2)}`;
-                
-                const netBalanceDisplay = document.getElementById('netBalance');
-                netBalanceDisplay.textContent = `€${netBalance.toFixed(2)}`;
-                netBalanceDisplay.classList.remove('text-green-400', 'text-red-400', 'text-gray-300');
-                if (netBalance > 0) netBalanceDisplay.classList.add('text-green-400');
-                else if (netBalance < 0) netBalanceDisplay.classList.add('text-red-400');
-                else netBalanceDisplay.classList.add('text-gray-300');
-                
-                saveData();
-            }
-
-            // --- Factory for creating new category rows ---
-            function createCategoryRow(categoryName, value, type) {
-                const isExpense = type === 'expense';
-                const rowClass = isExpense ? 'custom-expense-row' : 'custom-income-row';
-                const inputClass = isExpense ? 'expense-item' : 'income-item';
-                
-                const newRow = document.createElement('div');
-                newRow.className = `flex items-center justify-between animate-fade-in ${rowClass}`;
-
-                const label = document.createElement('label');
-                label.className = 'text-gray-300';
-                label.textContent = categoryName;
-
-                const inputWrapper = document.createElement('div');
-                inputWrapper.className = 'flex items-center gap-2';
-
-                const input = document.createElement('input');
-                input.type = 'number';
-                input.placeholder = '0.00';
-                input.value = value;
-                input.className = `${inputClass} w-32 bg-gray-700 text-white p-2 rounded-lg text-right border border-gray-600`;
-                input.addEventListener('input', calculateBudget);
-
-                const removeBtn = document.createElement('button');
-                removeBtn.textContent = '✕';
-                removeBtn.className = 'text-gray-400 hover:text-red-400 font-bold transition-colors w-6 h-6 flex items-center justify-center';
-                removeBtn.title = 'Remove category';
-                removeBtn.addEventListener('click', () => {
-                    newRow.classList.add('animate-fade-out');
-                    setTimeout(() => { newRow.remove(); calculateBudget(); }, 300);
-                });
-                
-                inputWrapper.appendChild(input);
-                inputWrapper.appendChild(removeBtn);
-                newRow.appendChild(label);
-                newRow.appendChild(inputWrapper);
-
-                return newRow;
-            }
-
-            function addIncomeCategory(name, value = '') {
-                const categoryName = name || document.getElementById('new-income-name').value.trim();
-                if (categoryName === "") {
-                    const input = document.getElementById('new-income-name');
-                    input.classList.add('animate-shake');
-                    setTimeout(() => input.classList.remove('animate-shake'), 500);
-                    return;
-                }
-                const newRow = createCategoryRow(categoryName, value, 'income');
-                document.getElementById('custom-incomes-container').appendChild(newRow);
-
-                if (!name) { 
-                  const newIncomeNameInput = document.getElementById('new-income-name');
-                  newIncomeNameInput.value = '';
-                  newIncomeNameInput.focus();
-                }
-                calculateBudget();
-            }
-
-            function addExpenseCategory(name, value = '') {
-                const categoryName = name || document.getElementById('new-expense-name').value.trim();
-                if (categoryName === "") {
-                    const input = document.getElementById('new-expense-name');
-                    input.classList.add('animate-shake');
-                    setTimeout(() => input.classList.remove('animate-shake'), 500);
-                    return;
-                }
-                const newRow = createCategoryRow(categoryName, value, 'expense');
-                document.getElementById('custom-expenses-container').appendChild(newRow);
-
-                if (!name) { 
-                  const newExpenseNameInput = document.getElementById('new-expense-name');
-                  newExpenseNameInput.value = '';
-                  newExpenseNameInput.focus();
-                }
-                calculateBudget();
-            }
-
-            // --- Initial Setup & Event Listeners ---
-            document.querySelectorAll('input[type="number"]').forEach(input => input.addEventListener('input', calculateBudget));
-
-            document.getElementById('add-income-btn').addEventListener('click', () => addIncomeCategory());
-            document.getElementById('new-income-name').addEventListener('keypress', (e) => { if (e.key === 'Enter') { e.preventDefault(); addIncomeCategory(); }});
-
-            document.getElementById('add-expense-btn').addEventListener('click', () => addExpenseCategory());
-            document.getElementById('new-expense-name').addEventListener('keypress', (e) => { if (e.key === 'Enter') { e.preventDefault(); addExpenseCategory(); }});
-
-            loadData();
-            calculateBudget();
+        authToggle.addEventListener('click', (e) => {
+            e.preventDefault();
+            isLoginMode = !isLoginMode;
+            authTitle.textContent = isLoginMode ? 'Login' : 'Sign Up';
+            authButton.textContent = isLoginMode ? 'Login' : 'Create Account';
+            authToggle.textContent = isLoginMode ? 'Need an account? Sign up' : 'Have an account? Login';
+            authError.textContent = '';
         });
+
+        authForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const email = emailInput.value;
+            const password = passwordInput.value;
+            authError.textContent = '';
+
+            try {
+                if (isLoginMode) {
+                    await signInWithEmailAndPassword(auth, email, password);
+                } else {
+                    await createUserWithEmailAndPassword(auth, email, password);
+                }
+            } catch (error) {
+                authError.textContent = error.message;
+            }
+        });
+
+        logoutButton.addEventListener('click', async () => {
+            if (unsubscribeTransactions) unsubscribeTransactions();
+            await signOut(auth);
+            currentUserId = null;
+            transactions = {};
+        });
+
+        onAuthStateChanged(auth, user => {
+            if (user) {
+                currentUserId = user.uid;
+                authContainer.classList.remove('active');
+                appContainer.classList.remove('hidden');
+                loadSettings();
+                listenForTransactions();
+            } else {
+                authContainer.classList.add('active');
+                appContainer.classList.add('hidden');
+            }
+        });
+
+        // --- DATA LOGIC (FIRESTORE) ---
+
+        async function saveSettings() {
+            if (!currentUserId) return;
+            settings.hourlyRate = hourlyRateInput.value;
+            settings.initialBalance = parseFloat(initialBalanceInput.value) || 0;
+            const settingsRef = doc(db, 'users', currentUserId);
+            await setDoc(settingsRef, { settings }, { merge: true });
+            alert('Settings saved!');
+            renderAll();
+        }
+
+        async function loadSettings() {
+            if (!currentUserId) return;
+            const settingsRef = doc(db, 'users', currentUserId);
+            const docSnap = await getDoc(settingsRef);
+            if (docSnap.exists() && docSnap.data().settings) {
+                settings = docSnap.data().settings;
+                hourlyRateInput.value = settings.hourlyRate;
+                initialBalanceInput.value = settings.initialBalance;
+            }
+            renderAll();
+        }
+        
+        function listenForTransactions() {
+            if (!currentUserId) return;
+            if (unsubscribeTransactions) unsubscribeTransactions();
+            const transCollectionRef = collection(db, 'users', currentUserId, 'transactions');
+            
+            unsubscribeTransactions = onSnapshot(transCollectionRef, (snapshot) => {
+                transactions = {};
+                snapshot.forEach(doc => {
+                    const t = { id: doc.id, ...doc.data() };
+                    if (!transactions[t.date]) {
+                        transactions[t.date] = [];
+                    }
+                    transactions[t.date].push(t);
+                });
+                renderAll();
+            });
+        }
+
+        async function handleFormSubmit(e) {
+            e.preventDefault();
+            if (!currentUserId) return;
+
+            const date = transactionDateInput.value;
+            const id = transactionIdInput.value;
+            const description = descriptionInput.value;
+            let amount;
+            let hours = null;
+            let source = null;
+
+            if (currentTransactionType === 'income') {
+                source = document.querySelector('input[name="income-source"]:checked').value;
+                if(source === 'work') {
+                    hours = parseFloat(hoursInput.value);
+                    const rate = parseFloat(settings.hourlyRate);
+                    if (!rate || rate <= 0) { alert('Please set your hourly rate in Settings.'); return; }
+                    if (isNaN(hours) || hours <= 0) { alert('Please enter valid hours worked.'); return; }
+                    amount = hours * rate;
+                } else {
+                    amount = parseFloat(amountInput.value);
+                }
+            } else {
+                amount = parseFloat(amountInput.value);
+            }
+
+            if (isNaN(amount) || amount <= 0) { alert('Please enter a valid amount.'); return; }
+
+            const newTransaction = {
+                date,
+                description,
+                amount,
+                type: currentTransactionType,
+                hours,
+                source,
+            };
+
+            const transCollectionRef = collection(db, 'users', currentUserId, 'transactions');
+            if (id) {
+                const docRef = doc(transCollectionRef, id);
+                await updateDoc(docRef, newTransaction);
+            } else {
+                await addDoc(transCollectionRef, newTransaction);
+            }
+
+            closeModal();
+        }
+
+        async function handleDelete() {
+            if (!currentUserId) return;
+            const id = transactionIdInput.value;
+            if (confirm('Are you sure you want to delete this transaction?')) {
+                const docRef = doc(db, 'users', currentUserId, 'transactions', id);
+                await deleteDoc(docRef);
+                closeModal();
+            }
+        }
+
+        // --- UI & RENDERING LOGIC ---
+        
+        function renderAll() {
+            renderCalendar();
+            updateSummaryAndCashFlow();
+        }
+        
+        function openModal(date, id = null) {
+            modal.classList.add('active');
+            transactionForm.reset();
+            transactionDateInput.value = date;
+            deleteBtn.classList.add('hidden');
+            
+            if (id) {
+                modalTitle.textContent = 'Edit Transaction';
+                const transaction = transactions[date].find(t => t.id === id);
+                if (transaction) {
+                    transactionIdInput.value = id;
+                    descriptionInput.value = transaction.description;
+                    amountInput.value = transaction.amount;
+                    if(transaction.hours) hoursInput.value = transaction.hours;
+                    setTransactionType(transaction.type);
+
+                    if(transaction.type === 'income'){
+                        const source = transaction.source || (transaction.hours ? 'work' : 'other');
+                        document.querySelector(`input[name="income-source"][value="${source}"]`).checked = true;
+                        toggleIncomeFields();
+                    }
+                    
+                    deleteBtn.classList.remove('hidden');
+                }
+            } else {
+                modalTitle.textContent = `Add Transaction for ${dayjs(date).format('MMMM D, YYYY')}`;
+                transactionIdInput.value = '';
+                setTransactionType('expense');
+            }
+        }
+        
+        function renderCalendar() {
+            calendarBody.innerHTML = '';
+            const month = currentDate.month();
+            const year = currentDate.year();
+            currentMonthYear.textContent = currentDate.format('MMMM YYYY');
+            const firstDayOfMonth = dayjs().year(year).month(month).startOf('month').day();
+            const daysInMonth = currentDate.daysInMonth();
+            const prevMonth = currentDate.subtract(1, 'month');
+            const daysInPrevMonth = prevMonth.daysInMonth();
+            for (let i = firstDayOfMonth; i > 0; i--) {
+                const day = daysInPrevMonth - i + 1;
+                const date = prevMonth.date(day).format('YYYY-MM-DD');
+                calendarBody.innerHTML += createDayCell(day, date, true);
+            }
+            for (let i = 1; i <= daysInMonth; i++) {
+                const date = dayjs().year(year).month(month).date(i).format('YYYY-MM-DD');
+                calendarBody.innerHTML += createDayCell(i, date, false);
+            }
+            const totalCells = firstDayOfMonth + daysInMonth;
+            const nextMonthDays = (7 - (totalCells % 7)) % 7;
+            const nextMonthDate = currentDate.add(1, 'month');
+            for (let i = 1; i <= nextMonthDays; i++) {
+                const date = nextMonthDate.date(i).format('YYYY-MM-DD');
+                calendarBody.innerHTML += createDayCell(i, date, true);
+            }
+            addCalendarEventListeners();
+            renderTransactionsOnCalendar();
+        }
+
+        function createDayCell(day, date, isOtherMonth) {
+            const today = dayjs().format('YYYY-MM-DD');
+            let dayClass = 'calendar-day relative p-2 border-r border-b border-gray-200 transition-colors duration-200';
+            if (isOtherMonth) dayClass += ' other-month';
+            else dayClass += ' hover:bg-gray-50 cursor-pointer';
+
+            const dayNumberHtml = date === today ? 
+                `<div class="absolute top-1 right-1 text-xs sm:text-sm bg-indigo-600 text-white rounded-full h-6 w-6 flex items-center justify-center font-semibold">${day}</div>` :
+                `<div class="text-xs sm:text-sm text-right">${day}</div>`;
+
+            return `<div class="${dayClass}" data-date="${date}">${dayNumberHtml}<div class="transaction-list mt-8 text-xs space-y-1"></div></div>`;
+        }
+        
+        function renderTransactionsOnCalendar() {
+            document.querySelectorAll('.transaction-item').forEach(el => el.remove());
+            for (const date in transactions) {
+                const dayCell = document.querySelector(`.calendar-day[data-date="${date}"]`);
+                if (dayCell) {
+                    const transactionList = dayCell.querySelector('.transaction-list');
+                    transactions[date].forEach(t => {
+                        const item = document.createElement('div');
+                        item.className = `transaction-item p-1 rounded-md text-white truncate ${t.type === 'income' ? 'bg-green-500' : 'bg-red-500'}`;
+                        item.textContent = `${t.description}: €${t.amount.toFixed(2)}`;
+                        item.dataset.id = t.id;
+                        item.dataset.date = date;
+                        item.addEventListener('click', (e) => { e.stopPropagation(); openModal(date, t.id); });
+                        transactionList.appendChild(item);
+                    });
+                }
+            }
+        }
+
+        function updateSummaryAndCashFlow() {
+            const month = currentDate.month();
+            const year = currentDate.year();
+            let totalIncome = 0;
+            let totalExpenses = 0;
+            Object.values(transactions).flat().filter(t => dayjs(t.date).month() === month && dayjs(t.date).year() === year).forEach(t => {
+                if (t.type === 'income') totalIncome += t.amount;
+                else totalExpenses += t.amount;
+            });
+            document.getElementById('summary-income').textContent = `€${totalIncome.toFixed(2)}`;
+            document.getElementById('summary-expenses').textContent = `€${totalExpenses.toFixed(2)}`;
+            const net = totalIncome - totalExpenses;
+            const netSpan = document.getElementById('summary-net');
+            netSpan.textContent = `€${net.toFixed(2)}`;
+            netSpan.className = `font-bold ${net >= 0 ? 'text-green-600' : 'text-red-600'}`;
+            let runningBalance = settings.initialBalance;
+            Object.values(transactions).flat().sort((a,b) => dayjs(a.date).isAfter(dayjs(b.date)) ? 1 : -1).forEach(t => {
+                if (!dayjs(t.date).isAfter(dayjs(), 'day')) {
+                    runningBalance += t.type === 'income' ? t.amount : -t.amount;
+                }
+            });
+            const cashFlowSpan = document.getElementById('summary-cashflow');
+            cashFlowSpan.textContent = `€${runningBalance.toFixed(2)}`;
+            cashFlowSpan.className = `font-bold ${runningBalance >= 0 ? 'text-gray-800' : 'text-red-600'}`;
+        }
+        
+        function closeModal() { modal.classList.remove('active'); }
+
+        function addCalendarEventListeners() {
+            document.querySelectorAll('.calendar-day:not(.other-month)').forEach(dayCell => {
+                dayCell.addEventListener('click', (e) => {
+                    if (e.target.closest('.transaction-item')) return;
+                    openModal(dayCell.dataset.date);
+                    showDailyBreakdown(dayCell.dataset.date);
+                });
+                dayCell.addEventListener('mouseenter', (e) => showDailyBreakdown(dayCell.dataset.date));
+            });
+        }
+        
+        function setTransactionType(type) {
+            currentTransactionType = type;
+            if (type === 'income') {
+                typeIncomeBtn.classList.add('bg-green-500', 'text-white');
+                typeIncomeBtn.classList.remove('bg-white');
+                typeExpenseBtn.classList.remove('bg-red-500', 'text-white');
+                incomeSourceGroup.classList.remove('hidden');
+                document.querySelector('input[name="income-source"][value="other"]').checked = true;
+                toggleIncomeFields();
+            } else {
+                typeExpenseBtn.classList.add('bg-red-500', 'text-white');
+                typeIncomeBtn.classList.remove('bg-green-500', 'text-white');
+                incomeSourceGroup.classList.add('hidden');
+                hoursGroup.classList.add('hidden');
+                amountGroup.classList.remove('hidden');
+                amountInput.required = true;
+            }
+        }
+        
+        function toggleIncomeFields() {
+            const selectedSource = document.querySelector('input[name="income-source"]:checked').value;
+            if (selectedSource === 'work') {
+                hoursGroup.classList.remove('hidden');
+                amountGroup.classList.add('hidden');
+                amountInput.required = false;
+                hoursInput.required = true;
+            } else {
+                hoursGroup.classList.add('hidden');
+                amountGroup.classList.remove('hidden');
+                amountInput.required = true;
+                hoursInput.required = false;
+            }
+        }
+        
+        function updateCalculatedIncome() {
+            const hours = parseFloat(hoursInput.value) || 0;
+            const rate = parseFloat(settings.hourlyRate) || 0;
+            calculatedIncomeSpan.textContent = `€${(hours * rate).toFixed(2)}`;
+        }
+
+        function showDailyBreakdown(dateStr) {
+            const breakdownDiv = document.getElementById('daily-breakdown');
+            const contentDiv = document.getElementById('daily-breakdown-content');
+            document.getElementById('daily-breakdown-date').textContent = dayjs(dateStr).format('MMMM D, YYYY');
+            breakdownDiv.classList.remove('hidden');
+            contentDiv.innerHTML = '';
+            let runningBalance = settings.initialBalance;
+            const sortedTransactions = Object.values(transactions).flat().sort((a,b) => dayjs(a.date).isAfter(dayjs(b.date)) ? 1 : -1);
+
+            for (const t of sortedTransactions) {
+                if (dayjs(t.date).isAfter(dayjs(dateStr), 'day')) break;
+                runningBalance += t.type === 'income' ? t.amount : -t.amount;
+            }
+            
+            contentDiv.innerHTML += `<div class="flex justify-between p-2 rounded-md bg-gray-100"><span class="font-semibold">Projected Balance</span><span class="font-bold ${runningBalance >= 0 ? 'text-gray-800' : 'text-red-600'}">€${runningBalance.toFixed(2)}</span></div>`;
+            const dailyTransactions = transactions[dateStr] || [];
+            if (dailyTransactions.length > 0) {
+                const list = document.createElement('ul');
+                list.className = 'mt-2 space-y-1 text-sm';
+                dailyTransactions.forEach(t => {
+                   const item = document.createElement('li');
+                   item.className = 'flex justify-between items-center';
+                   item.innerHTML = `<span>${t.description}</span> <span class="${t.type === 'income' ? 'text-green-600' : 'text-red-600'}">${t.type === 'income' ? '+' : '-'}${t.amount.toFixed(2)}</span>`;
+                   list.appendChild(item);
+                });
+                contentDiv.appendChild(list);
+            } else {
+                 contentDiv.innerHTML += '<p class="text-sm text-gray-500 mt-2">No transactions for this day.</p>';
+            }
+        }
+
+        // Event Listeners
+        prevMonthBtn.addEventListener('click', () => { currentDate = currentDate.subtract(1, 'month'); renderAll(); });
+        nextMonthBtn.addEventListener('click', () => { currentDate = currentDate.add(1, 'month'); renderAll(); });
+        saveSettingsBtn.addEventListener('click', saveSettings);
+        typeIncomeBtn.addEventListener('click', () => setTransactionType('income'));
+        typeExpenseBtn.addEventListener('click', () => setTransactionType('expense'));
+        hoursInput.addEventListener('input', updateCalculatedIncome);
+        hourlyRateInput.addEventListener('input', updateCalculatedIncome);
+        incomeSourceRadios.forEach(radio => radio.addEventListener('change', toggleIncomeFields));
+        transactionForm.addEventListener('submit', handleFormSubmit);
+        cancelBtn.addEventListener('click', closeModal);
+        deleteBtn.addEventListener('click', handleDelete);
+        modal.addEventListener('click', (e) => { if(e.target === modal) closeModal(); });
+
     </script>
 </body>
 </html>
