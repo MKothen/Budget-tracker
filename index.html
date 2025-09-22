@@ -229,14 +229,12 @@
             return { totalIncome, totalExpenses, net, cashFlow, expenseData };
         }
 
-        // --- EVENT HANDLERS & ACTIONS ---
-        function handleAction(e) {
+        // --- GLOBAL EVENT CONTROLLER ---
+        document.addEventListener('click', (e) => {
             const target = e.target.closest('[data-action]');
             if (!target) return;
-            e.preventDefault();
+
             const { action, id, date, type } = target.dataset;
-            const form = target.closest('form');
-            if (form && action !== 'close-modal' && target.type !== 'button') return;
 
             switch(action) {
                 case 'logout': signOut(auth); break;
@@ -259,39 +257,11 @@
                 case 'close-modal': closeModal(); break;
                 case 'set-tx-type': setTransactionTypeUI(type); break;
             }
-        }
-        
-        // --- MODAL & FORM SUBMISSION LOGIC ---
-        function openTransactionModal(date, id=null) {
-            const form = $('transaction-form'); form.reset();
-            $('transaction-date').value = date; $('transaction-id').value = id || '';
-            let type = 'expense', category = 'one-time';
-            if (id) {
-                const t = state.transactions[date]?.find(tx => tx.id === id);
-                if (t) { $('modal-title').textContent = 'Edit Transaction'; $('description').value = t.description; $('amount').value = t.amount; type = t.type; category = t.category; $('delete-transaction').classList.remove('hidden'); }
-            } else { $('modal-title').textContent = `Add Transaction for ${dayjs(date).format('MMMM D, YYYY')}`; $('delete-transaction').classList.add('hidden'); }
-            setTransactionTypeUI(type, category);
-            $('transaction-modal').classList.add('active');
-        }
-        async function handleTransactionSubmit(e) { e.preventDefault(); const form=e.target, id=form['transaction-id'].value, date=form['transaction-date'].value, description=form['description'].value; let amount=parseFloat(form['amount'].value); let type=$('type-income').classList.contains('bg-violet-600')?'income':'expense', category='one-time', hours=null, source=null; if(type==='income'){ source=form['income-source'].value; if(source==='work'){ hours=parseFloat(form['hours'].value); if(isNaN(hours)||hours<=0)return alert('Invalid hours.'); amount=hours*(parseFloat(state.settings.hourlyRate)||0); } }else{ category=form['category'].value; } if(!description||isNaN(amount)||amount<=0)return alert('Invalid input.'); const newTx={date,description,amount,type,category,hours,source}; const ref=collection(db,'users',state.user.uid,'transactions'); if(id)await updateDoc(doc(ref,id),newTx); else await addDoc(ref,newTx); closeModal(); }
-        async function handleDeleteTransaction() { const id = $('transaction-id').value; if(confirm('Delete transaction?')) { await deleteDoc(doc(db, 'users', state.user.uid, 'transactions', id)); closeModal(); }}
-        function openBudgetModal(id=null) { $('budget-form').reset(); $('budget-id').value = id || ''; if (id) { const b = state.settings.recurringExpenses.find(i=>i.id===id); if(b){ $('budget-description').value = b.description; $('budget-amount').value = b.amount; }} $('budget-modal').classList.add('active'); }
-        function handleBudgetSubmit(e) { e.preventDefault(); const desc=$('budget-description').value,amount=parseFloat($('budget-amount').value),id=$('budget-id').value||Date.now().toString(); if(!desc||isNaN(amount)||amount<=0)return; const idx=state.settings.recurringExpenses.findIndex(i=>i.id===id); if(idx>-1)state.settings.recurringExpenses[idx]={id,description:desc,amount}; else state.settings.recurringExpenses.push({id,description:desc,amount}); saveSettings().then(()=>{render();closeModal();}); }
-        function openGoalModal(id=null) { $('goal-form').reset(); $('goal-id').value = id || ''; if(id){ const g = state.settings.savingsGoals.find(i=>i.id===id); if(g){ $('goal-description').value = g.description; $('goal-amount').value = g.target; }} $('goal-modal').classList.add('active'); }
-        function handleGoalSubmit(e) { e.preventDefault(); const desc=$('goal-description').value,amount=parseFloat($('goal-amount').value),id=$('goal-id').value||Date.now().toString(); if(!desc||isNaN(amount)||amount<=0)return; const idx=state.settings.savingsGoals.findIndex(i=>i.id===id); if(idx>-1){state.settings.savingsGoals[idx].description=desc;state.settings.savingsGoals[idx].target=amount;}else state.settings.savingsGoals.push({id,description:desc,target:amount}); saveSettings().then(()=>{render();closeModal();}); }
-        function openBillModal(id=null) { $('bill-form').reset(); $('bill-id').value = id || ''; if(id){ const b = state.settings.automaticBills.find(i=>i.id===id); if(b){ $('bill-description').value = b.description; $('bill-amount').value = b.amount; $('bill-day').value = b.day; }} $('bill-modal').classList.add('active'); }
-        function handleBillSubmit(e) { e.preventDefault(); const desc=$('bill-description').value,amount=parseFloat($('bill-amount').value),day=parseInt($('bill-day').value),id=$('bill-id').value||Date.now().toString(); if(!desc||isNaN(amount)||amount<=0||isNaN(day)||day<1||day>31)return alert('Invalid input'); const idx=state.settings.automaticBills.findIndex(i=>i.id===id); if(idx>-1)state.settings.automaticBills[idx]={id,description:desc,amount,day}; else state.settings.automaticBills.push({id,description:desc,amount,day}); saveSettings().then(()=>{render();closeModal();}); }
-        function openContributeModal(id) { $('contribute-form').reset(); $('contribute-goal-id').value = id; $('contribute-modal').classList.add('active'); }
-        async function handleContributeSubmit(e) { e.preventDefault(); const goalId=$('contribute-goal-id').value,amount=parseFloat($('contribute-amount').value); if(isNaN(amount)||amount<=0)return; const goal=state.settings.savingsGoals.find(g=>g.id===goalId); if(!goal)return; const newTx={date:dayjs().format('YYYY-MM-DD'),description:`Contribution to ${goal.description}`,amount,type:'expense',category:`goal_${goalId}`}; await addDoc(collection(db,'users',state.user.uid,'transactions'),newTx); closeModal(); }
-        function setTransactionTypeUI(type, category = 'one-time') { const incomeBtn = $('type-income'), expenseBtn = $('type-expense'); if (type === 'income') { incomeBtn.classList.add('bg-violet-600', 'text-white'); expenseBtn.classList.remove('bg-violet-600', 'text-white'); $('income-source-group').classList.remove('hidden'); $('category-group').classList.add('hidden'); } else { expenseBtn.classList.add('bg-violet-600', 'text-white'); incomeBtn.classList.remove('bg-violet-600', 'text-white'); $('income-source-group').classList.add('hidden'); $('category-group').classList.remove('hidden'); const select = $('category'); select.innerHTML = '<option value="one-time">One-Time Expense</option>'; state.settings.recurringExpenses.forEach(item => { select.innerHTML += `<option value="${item.id}">${item.description}</option>`; }); select.value = category; }}
-        function closeModal() { document.querySelectorAll('.modal').forEach(m => m.classList.remove('active')); }
-        
-        async function addAutomaticBillsForMonth() { if(!state.user || !state.settings.automaticBills) return; for(const bill of state.settings.automaticBills) { let billDay = bill.day > state.currentDate.daysInMonth() ? state.currentDate.daysInMonth() : bill.day; const billDate = state.currentDate.date(billDay).format('YYYY-MM-DD'); const desc = `Auto-Bill: ${bill.description}`; const q = query(collection(db, 'users', state.user.uid, 'transactions'), where("date", "==", billDate), where("description", "==", desc)); const existing = await getDocs(q); if(existing.empty) { addDoc(collection(db, 'users', state.user.uid, 'transactions'), { date: billDate, description: desc, amount: bill.amount, type: 'expense', category: 'one-time' }); } } }
-        
-        // --- GLOBAL INITIALIZATION ---
+        });
+
         document.addEventListener('submit', e => {
-            const formId = e.target.id;
-            switch(formId) {
+            e.preventDefault();
+            switch(e.target.id) {
                 case 'auth-form': handleAuthForm(e); break;
                 case 'transaction-form': handleTransactionSubmit(e); break;
                 case 'budget-form': handleBudgetSubmit(e); break;
@@ -300,7 +270,68 @@
                 case 'contribute-form': handleContributeSubmit(e); break;
             }
         });
-        document.addEventListener('click', handleAction);
+        
+        // --- MODAL & FORM SUBMISSION LOGIC ---
+        function openTransactionModal(date, id=null) {
+            const form = $('transaction-form'); form.reset();
+            $('transaction-date').value = date; $('transaction-id').value = id || '';
+            let type = 'expense', category = 'one-time';
+            if (id) {
+                const t = state.transactions[date]?.find(tx => tx.id === id);
+                if (t) {
+                    $('modal-title').textContent = 'Edit Transaction';
+                    $('description').value = t.description; $('amount').value = t.amount;
+                    type = t.type; category = t.category;
+                    $('delete-transaction').classList.remove('hidden');
+                }
+            } else {
+                $('modal-title').textContent = `Add Transaction for ${dayjs(date).format('MMMM D, YYYY')}`;
+                $('delete-transaction').classList.add('hidden');
+            }
+            setTransactionTypeUI(type, category);
+            $('transaction-modal').classList.add('active');
+        }
+        async function handleTransactionSubmit(e) {
+            const form = e.target;
+            const id = form['transaction-id'].value;
+            const date = form['transaction-date'].value;
+            const description = form['description'].value;
+            let amount = parseFloat(form['amount'].value);
+            let type = $('type-income').classList.contains('bg-violet-600') ? 'income' : 'expense';
+            let category = 'one-time', hours = null, source = null;
+            if (type === 'income') {
+                source = form['income-source'].value;
+                if(source === 'work') {
+                    hours = parseFloat(form['hours'].value);
+                    if (isNaN(hours) || hours <= 0) return alert('Invalid hours.');
+                    amount = hours * (parseFloat(state.settings.hourlyRate) || 0);
+                }
+            } else {
+                category = form['category'].value;
+            }
+            if (!description || isNaN(amount) || amount <= 0) return alert('Invalid input.');
+            const newTx = { date, description, amount, type, category, hours, source };
+            const ref = collection(db, 'users', state.user.uid, 'transactions');
+            if (id) await updateDoc(doc(ref, id), newTx); else await addDoc(ref, newTx);
+            closeModal();
+        }
+        async function handleDeleteTransaction() { const id = $('transaction-id').value; if(confirm('Delete transaction?')) { await deleteDoc(doc(db, 'users', state.user.uid, 'transactions', id)); closeModal(); }}
+        function openBudgetModal(id=null) { $('budget-form').reset(); $('budget-id').value = id || ''; if (id) { const b = state.settings.recurringExpenses.find(i=>i.id===id); if(b){ $('budget-description').value = b.description; $('budget-amount').value = b.amount; }} $('budget-modal').classList.add('active'); }
+        function handleBudgetSubmit(e) { const desc=$('budget-description').value,amount=parseFloat($('budget-amount').value),id=$('budget-id').value||Date.now().toString(); if(!desc||isNaN(amount)||amount<=0)return; const idx=state.settings.recurringExpenses.findIndex(i=>i.id===id); if(idx>-1)state.settings.recurringExpenses[idx]={id,description:desc,amount}; else state.settings.recurringExpenses.push({id,description:desc,amount}); saveSettings().then(()=>{render();closeModal();}); }
+        function openGoalModal(id=null) { $('goal-form').reset(); $('goal-id').value = id || ''; if(id){ const g = state.settings.savingsGoals.find(i=>i.id===id); if(g){ $('goal-description').value = g.description; $('goal-amount').value = g.target; }} $('goal-modal').classList.add('active'); }
+        function handleGoalSubmit(e) { const desc=$('goal-description').value,amount=parseFloat($('goal-amount').value),id=$('goal-id').value||Date.now().toString(); if(!desc||isNaN(amount)||amount<=0)return; const idx=state.settings.savingsGoals.findIndex(i=>i.id===id); if(idx>-1){state.settings.savingsGoals[idx].description=desc;state.settings.savingsGoals[idx].target=amount;}else state.settings.savingsGoals.push({id,description:desc,target:amount}); saveSettings().then(()=>{render();closeModal();}); }
+        function openBillModal(id=null) { $('bill-form').reset(); $('bill-id').value = id || ''; if(id){ const b = state.settings.automaticBills.find(i=>i.id===id); if(b){ $('bill-description').value = b.description; $('bill-amount').value = b.amount; $('bill-day').value = b.day; }} $('bill-modal').classList.add('active'); }
+        function handleBillSubmit(e) { const desc=$('bill-description').value,amount=parseFloat($('bill-amount').value),day=parseInt($('bill-day').value),id=$('bill-id').value||Date.now().toString(); if(!desc||isNaN(amount)||amount<=0||isNaN(day)||day<1||day>31)return alert('Invalid input'); const idx=state.settings.automaticBills.findIndex(i=>i.id===id); if(idx>-1)state.settings.automaticBills[idx]={id,description:desc,amount,day}; else state.settings.automaticBills.push({id,description:desc,amount,day}); saveSettings().then(()=>{render();closeModal();}); }
+        function openContributeModal(id) { $('contribute-form').reset(); $('contribute-goal-id').value = id; $('contribute-modal').classList.add('active'); }
+        async function handleContributeSubmit(e) { const goalId=$('contribute-goal-id').value,amount=parseFloat($('contribute-amount').value); if(isNaN(amount)||amount<=0)return; const goal=state.settings.savingsGoals.find(g=>g.id===goalId); if(!goal)return; const newTx={date:dayjs().format('YYYY-MM-DD'),description:`Contribution to ${goal.description}`,amount,type:'expense',category:`goal_${goalId}`}; await addDoc(collection(db,'users',state.user.uid,'transactions'),newTx); closeModal(); }
+        function setTransactionTypeUI(type, category = 'one-time') { const incomeBtn = $('type-income'), expenseBtn = $('type-expense'); if (type === 'income') { incomeBtn.classList.add('bg-violet-600', 'text-white'); expenseBtn.classList.remove('bg-violet-600', 'text-white'); $('income-source-group').classList.remove('hidden'); $('category-group').classList.add('hidden'); } else { expenseBtn.classList.add('bg-violet-600', 'text-white'); incomeBtn.classList.remove('bg-violet-600', 'text-white'); $('income-source-group').classList.add('hidden'); $('category-group').classList.remove('hidden'); const select = $('category'); select.innerHTML = '<option value="one-time">One-Time Expense</option>'; state.settings.recurringExpenses.forEach(item => { select.innerHTML += `<option value="${item.id}">${item.description}</option>`; }); select.value = category; }}
+        function closeModal() { document.querySelectorAll('.modal').forEach(m => m.classList.remove('active')); }
+        
+        async function addAutomaticBillsForMonth() { if(!state.user || !state.settings.automaticBills) return; for(const bill of state.settings.automaticBills) { let billDay = bill.day > state.currentDate.daysInMonth() ? state.currentDate.daysInMonth() : bill.day; const billDate = state.currentDate.date(billDay).format('YYYY-MM-DD'); const desc = `Auto-Bill: ${bill.description}`; const q = query(collection(db, 'users', state.user.uid, 'transactions'), where("date", "==", billDate), where("description", "==", desc)); const existing = await getDocs(q); if(existing.empty) { addDoc(collection(db, 'users', state.user.uid, 'transactions'), { date: billDate, description: desc, amount: bill.amount, type: 'expense', category: 'one-time' }); } } }
+        
+        async function handleAuthForm(e) { const email = $('email').value, password = $('password').value; $('auth-error').textContent = ''; try { if (state.isLogin) await signInWithEmailAndPassword(auth, email, password); else await createUserWithEmailAndPassword(auth, email, password); } catch (error) { $('auth-error').textContent = error.message; }}
+        function toggleAuthMode(e) { e.preventDefault(); state.isLogin = !state.isLogin; $('auth-title').textContent = state.isLogin ? 'Login' : 'Sign Up'; $('auth-button').textContent = state.isLogin ? 'Login' : 'Create Account'; $('auth-toggle').textContent = state.isLogin ? 'Need an account? Sign up' : 'Have an account? Login'; $('auth-error').textContent = ''; }
+        
         $('auth-toggle').addEventListener('click', toggleAuthMode);
         onAuthStateChanged(auth, user => {
             if (user) {
@@ -326,10 +357,9 @@
                 if (state.unsubscribe) state.unsubscribe();
             }
         });
+
     </script>
 </body>
 </html>
-
-
 
 
