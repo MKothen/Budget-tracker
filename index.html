@@ -105,7 +105,7 @@
             <form id="transaction-form">
                 <input type="hidden" id="transaction-date">
                 <input type="hidden" id="transaction-id">
-                <div class="mb-4"><div class="flex rounded-md shadow-sm"><button type="button" id="type-income" class="flex-1 py-2 px-4 border border-gray-300 rounded-l-md focus:outline-none">Income</button><button type="button" id="type-expense" class="flex-1 py-2 px-4 border border-gray-300 rounded-r-md focus:outline-none -ml-px">Expense</button></div></div>
+                <div class="mb-4"><div class="flex rounded-md shadow-sm"><button type="button" id="type-income" class="flex-1 py-2 px-4 border bg-white border-gray-300 rounded-l-md focus:outline-none">Income</button><button type="button" id="type-expense" class="flex-1 py-2 px-4 border bg-white border-gray-300 rounded-r-md focus:outline-none -ml-px">Expense</button></div></div>
                 <div id="income-source-group" class="mb-4 hidden"><label class="block text-sm font-medium text-gray-700 mb-2">Income Type</label><div class="flex space-x-4"><label class="flex items-center"><input type="radio" name="income-source" value="other" class="focus:ring-indigo-500 h-4 w-4 text-indigo-600 border-gray-300" checked><span class="ml-2 text-sm text-gray-700">Fixed Amount</span></label><label class="flex items-center"><input type="radio" name="income-source" value="work" class="focus:ring-indigo-500 h-4 w-4 text-indigo-600 border-gray-300"><span class="ml-2 text-sm text-gray-700">Work (by hours)</span></label></div></div>
                 <div class="mb-4"><label for="description" class="block text-sm font-medium text-gray-700">Description</label><input type="text" id="description" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500" required></div>
                 <div id="amount-group" class="mb-4"><label for="amount" class="block text-sm font-medium text-gray-700">Amount (€)</label><input type="number" id="amount" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500" step="0.01" required></div>
@@ -175,6 +175,8 @@
         const typeIncomeBtn = document.getElementById('type-income');
         const typeExpenseBtn = document.getElementById('type-expense');
         const incomeSourceGroup = document.getElementById('income-source-group');
+        const amountGroup = document.getElementById('amount-group');
+        const hoursGroup = document.getElementById('hours-group');
         const incomeSourceRadios = document.querySelectorAll('input[name="income-source"]');
         const calculatedIncomeSpan = document.getElementById('calculated-income');
         const cancelBtn = document.getElementById('cancel-transaction');
@@ -474,17 +476,21 @@
                 typeIncomeBtn.classList.add('bg-green-500', 'text-white');
                 typeIncomeBtn.classList.remove('bg-white');
                 typeExpenseBtn.classList.remove('bg-red-500', 'text-white');
+                typeExpenseBtn.classList.add('bg-white');
                 incomeSourceGroup.classList.remove('hidden');
                 document.querySelector('input[name="income-source"][value="other"]').checked = true;
                 toggleIncomeFields();
-            } else {
+            } else { // 'expense'
                 typeExpenseBtn.classList.add('bg-red-500', 'text-white');
+                typeExpenseBtn.classList.remove('bg-white');
                 typeIncomeBtn.classList.remove('bg-green-500', 'text-white');
+                typeIncomeBtn.classList.add('bg-white');
                 incomeSourceGroup.classList.add('hidden');
                 hoursGroup.classList.add('hidden');
                 amountGroup.classList.remove('hidden');
                 amountInput.required = true;
             }
+            updateCalculatedIncome();
         }
         
         function toggleIncomeFields() {
@@ -494,7 +500,7 @@
                 amountGroup.classList.add('hidden');
                 amountInput.required = false;
                 hoursInput.required = true;
-            } else {
+            } else { // 'other'
                 hoursGroup.classList.add('hidden');
                 amountGroup.classList.remove('hidden');
                 amountInput.required = true;
@@ -556,5 +562,8 @@
     </script>
 </body>
 </html>
+
+
+
 
 
