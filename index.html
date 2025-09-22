@@ -175,8 +175,8 @@
         const typeIncomeBtn = document.getElementById('type-income');
         const typeExpenseBtn = document.getElementById('type-expense');
         const incomeSourceGroup = document.getElementById('income-source-group');
-        const amountGroup = document.getElementById('amount-group');
-        const hoursGroup = document.getElementById('hours-group');
+        const amountGroup = document.getElementById('amount-group'); // This was missing
+        const hoursGroup = document.getElementById('hours-group');   // This was missing
         const incomeSourceRadios = document.querySelectorAll('input[name="income-source"]');
         const calculatedIncomeSpan = document.getElementById('calculated-income');
         const cancelBtn = document.getElementById('cancel-transaction');
@@ -489,8 +489,8 @@
                 hoursGroup.classList.add('hidden');
                 amountGroup.classList.remove('hidden');
                 amountInput.required = true;
+                hoursInput.required = false;
             }
-            updateCalculatedIncome();
         }
         
         function toggleIncomeFields() {
@@ -562,6 +562,9 @@
     </script>
 </body>
 </html>
+
+
+
 
 
 
