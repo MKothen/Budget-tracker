@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>My Intelligent Budget Dashboard</title>
+    <title>My Budget Dashboard — Enhanced</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         :root {
@@ -13,34 +13,26 @@
             --shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
             font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
         }
-        body.dark-mode {
-            --bg-color: #121212; --sidebar-bg: #1e1e1e; --card-bg: #1e1e1e;
-            --primary-text: #e0e0e0; --secondary-text: #a0a0a0; --accent-color: #4dabf7;
-            --income-color: #4caf50; --expense-color: #f44336; --border-color: #424242;
-        }
-        body { margin: 0; background-color: var(--bg-color); color: var(--primary-text); transition: background-color 0.3s, color 0.3s; }
+        body { margin: 0; background-color: var(--bg-color); color: var(--primary-text); }
         .sidebar {
             position: fixed; top: 0; left: 0; width: 260px; height: 100%;
             background-color: var(--sidebar-bg); padding: 24px; box-sizing: border-box;
             box-shadow: 4px 0 15px rgba(0,0,0,0.1); transform: translateX(-100%);
-            transition: transform 0.3s ease-in-out, background-color 0.3s; z-index: 2000;
+            transition: transform 0.3s ease-in-out; z-index: 2000;
             display: flex; flex-direction: column;
         }
         .sidebar.is-open { transform: translateX(0); }
-        .sidebar-menu { list-style: none; padding: 0; margin: 20px 0; }
-        .sidebar-menu li { padding: 12px 0; cursor: pointer; font-weight: 500; }
-        .sidebar-menu li:hover { color: var(--accent-color); }
         #logout-btn { margin-top: auto; }
         .main-content { padding: 16px; }
         .header { display: flex; align-items: center; margin-bottom: 24px; position: relative; }
         .header h1 { margin: 0 auto; font-size: 24px; }
         .menu-toggle-btn {
             background: none; border: none; font-size: 28px; cursor: pointer; padding: 0 10px;
-            position: absolute; left: 0; color: var(--primary-text);
+            position: absolute; left: 0;
         }
         .menu-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.4); z-index: 1999; }
         .summary-cards { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 24px; }
-        .card { background-color: var(--card-bg); padding: 16px; border-radius: 12px; box-shadow: var(--shadow); transition: background-color 0.3s; }
+        .card { background-color: var(--card-bg); padding: 16px; border-radius: 12px; box-shadow: var(--shadow); }
         #starting-balance-card { cursor: pointer; }
         #starting-balance-card h3::after { content: ' ✎'; font-size: 12px; color: var(--secondary-text); }
         .card h3 { margin: 0 0 8px 0; font-size: 14px; color: var(--secondary-text); }
@@ -52,19 +44,17 @@
         .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
         .calendar-day-name { font-size: 12px; font-weight: 600; text-align: center; color: var(--secondary-text); padding-bottom: 8px; }
         .calendar-day { border: 1px solid var(--border-color); border-radius: 6px; min-height: 90px; padding: 4px; cursor: pointer; transition: background-color 0.2s; font-size: 12px; overflow: hidden; }
-        .calendar-day:hover { background-color: rgba(13, 110, 253, 0.1); }
         .day-number { font-weight: 600; }
         .transaction-pill { font-size: 10px; padding: 3px 6px; border-radius: 12px; margin-top: 3px; color: white; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
         .transaction-pill.income { background-color: var(--income-color); }
         .transaction-pill.expense { background-color: var(--expense-color); }
-        .transaction-pill.recurring::before { content: '↻ '; font-weight: bold; }
         .chart-container { background-color: var(--card-bg); padding: 16px; border-radius: 12px; box-shadow: var(--shadow); }
         .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.5); display: flex; justify-content: center; align-items: center; z-index: 3000; }
-        .modal-content { background-color: var(--card-bg); color: var(--primary-text); padding: 24px; border-radius: 12px; width: 90%; max-width: 450px; }
+        .modal-content { background-color: white; padding: 24px; border-radius: 12px; width: 90%; max-width: 420px; }
         .modal-content h2 { margin-top: 0; }
         .form-group { margin-bottom: 15px; }
         .form-group label { display: block; margin-bottom: 5px; font-weight: 600; }
-        .form-group input, .form-group select { width: 100%; padding: 10px; border-radius: 8px; border: 1px solid var(--border-color); box-sizing: border-box; font-size: 16px; background-color: var(--bg-color); color: var(--primary-text); }
+        .form-group input, .form-group select { width: 100%; padding: 10px; border-radius: 8px; border: 1px solid var(--border-color); box-sizing: border-box; font-size: 16px; }
         .modal-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px; }
         .btn { padding: 10px 16px; border: none; border-radius: 8px; cursor: pointer; font-weight: 600; }
         .btn-primary { background-color: var(--accent-color); color: white; }
@@ -73,14 +63,19 @@
         .auth-container { width: 100%; height: 100vh; display: flex; justify-content: center; align-items: center; padding: 16px; box-sizing: border-box; }
         .auth-box { width: 100%; max-width: 320px; padding: 30px; text-align: center; }
         .hidden { display: none !important; }
-        #user-email { color: var(--secondary-text); word-break: break-all; font-size: 14px; }
-        .budgets-header, .savings-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
-        .progress-bar { height: 10px; background-color: var(--border-color); border-radius: 5px; overflow: hidden; }
+        #user-email { color: var(--secondary-text); word-break: break-all; }
+
+        /* NEW: Budgets Section Styles */
+        .budgets-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+        .budget-item { margin-bottom: 12px; }
+        .budget-item-info { display: flex; justify-content: space-between; margin-bottom: 4px; font-size: 14px; }
+        .progress-bar { height: 10px; background-color: #e9ecef; border-radius: 5px; overflow: hidden; }
         .progress-bar-fill { height: 100%; background-color: var(--accent-color); border-radius: 5px; transition: width 0.5s ease-in-out; }
         .progress-bar-fill.over-budget { background-color: var(--expense-color); }
-        .list-item-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; padding: 4px; border-radius: 4px; }
-        .list-item-row:hover { background-color: rgba(128,128,128,0.1); }
-        .theme-switcher { display: flex; align-items: center; justify-content: space-between; }
+        #budgets-list .budget-item-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+
+        /* Savings goals */
+        .savings-list .goal-row { display:flex; justify-content:space-between; align-items:center; margin-bottom:8px }
 
         @media (min-width: 768px) {
             body { display: flex; }
@@ -88,22 +83,23 @@
             .sidebar { position: static; transform: translateX(0); width: 240px; box-shadow: none; border-right: 1px solid var(--border-color); }
             .main-content { flex-grow: 1; padding: 24px; height: 100vh; overflow-y: auto; box-sizing: border-box; }
             .header { justify-content: space-between; } .header h1 { margin-left: 0; font-size: 28px; }
-            .dashboard-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
-            .summary-cards { grid-template-columns: repeat(3, 1fr); grid-column: 1 / -1; }
-            .calendar-container { grid-column: 1 / -1; }
-            .chart-container { grid-column: 1 / -1; }
+            .summary-cards { grid-template-columns: repeat(4, 1fr); }
             .card { padding: 20px; } .card h3 { font-size: 16px; } .card .amount { font-size: 28px; }
+            .calendar-container { padding: 20px; } .calendar-header h2 { font-size: initial; margin: 0; }
+            .calendar-day { padding: 8px; font-size: initial; }
+            .transaction-pill { font-size: 12px; padding: 4px 8px; margin-top: 4px; }
         }
+
+        .suggestion-banner { background: linear-gradient(90deg, #fffbe6, #eaf6ff); padding: 10px; border-radius: 8px; margin-bottom:12px; font-size:14px }
     </style>
 </head>
 <body>
     <div id="app-container" class="hidden">
         <nav class="sidebar" id="sidebar">
-            <h2>Fin-AI</h2>
-            <p id="user-email"></p>
-            <ul class="sidebar-menu">
-                <li id="settings-btn">⚙️ Settings</li>
-            </ul>
+            <h2>Dashboard</h2><p id="user-email"></p>
+            <div id="suggestion-area"></div>
+            <button id="open-settings-btn" class="btn btn-secondary" style="margin-top:8px;">Settings</button>
+            <button id="manage-savings-btn" class="btn btn-secondary" style="margin-top:8px;">Savings Goals</button>
             <button id="logout-btn" class="btn btn-secondary">Logout</button>
         </nav>
         <main class="main-content">
@@ -121,27 +117,22 @@
                 <div class="card">
                     <h3>Predicted End Balance</h3><div class="amount" id="end-balance">€0.00</div>
                 </div>
+                <div class="card">
+                    <h3>Total Savings Progress</h3><div class="amount" id="savings-progress">€0.00</div>
+                </div>
             </section>
             
-            <div class="dashboard-grid">
-                <section class="card">
-                    <div class="budgets-header">
-                        <h3>Monthly Budgets</h3>
-                        <button id="manage-budgets-btn" class="btn btn-secondary" style="padding: 5px 10px; font-size: 12px;">Manage</button>
-                    </div>
-                    <div id="budgets-container"><p>No budgets set for this month.</p></div>
-                </section>
+            <section class="card" style="margin-bottom: 24px;">
+                <div class="budgets-header">
+                    <h3>Monthly Budgets</h3>
+                    <button id="manage-budgets-btn" class="btn btn-secondary" style="padding: 5px 10px; font-size: 12px;">Manage</button>
+                </div>
+                <div id="budgets-container">
+                    <p>No budgets set for this month.</p>
+                </div>
+            </section>
 
-                <section class="card">
-                    <div class="savings-header">
-                        <h3>Savings Goals</h3>
-                        <button id="manage-goals-btn" class="btn btn-secondary" style="padding: 5px 10px; font-size: 12px;">Manage</button>
-                    </div>
-                    <div id="goals-container"><p>No savings goals set.</p></div>
-                </section>
-            </div>
-
-            <section class="calendar-container" style="margin-top: 24px;">
+            <section class="calendar-container">
                 <div class="calendar-header">
                     <button id="prev-month-btn" class="btn btn-secondary">&lt; Prev</button>
                     <h2 id="month-year-label"></h2>
@@ -172,20 +163,21 @@
         <div class="modal-content">
             <h2 id="modal-title">Add Transaction</h2>
             <form id="transaction-form">
-                <input type="hidden" id="transaction-id"><input type="hidden" id="is-recurring-rule">
+                <input type="hidden" id="transaction-id">
                 <div class="form-group"><label for="title">Title</label><input type="text" id="title" required></div>
                 <div class="form-group"><label for="amount">Amount (€)</label><input type="number" step="0.01" id="amount" required></div>
-                <div class="form-group"><label for="category">Category</label><input type="text" id="category" list="category-suggestions"></div>
-                <datalist id="category-suggestions"></datalist>
+                <div class="form-group"><label for="category">Category (e.g., Groceries, Rent)</label><input type="text" id="category"></div>
                 <div class="form-group"><label for="type">Type</label><select id="type"><option value="expense">Expense</option><option value="income">Income</option></select></div>
                 <div class="form-group"><label for="date">Date</label><input type="date" id="date" required></div>
-                <div class="form-group">
-                    <label for="recurring-checkbox"><input type="checkbox" id="recurring-checkbox"> Make this recurring?</label>
+
+                <div class="form-group"><label><input type="checkbox" id="recurring-checkbox"> Make this recurring</label></div>
+                <div id="recurrence-options" class="hidden">
+                    <div class="form-group"><label for="recurrence-interval">Recurrence</label>
+                        <select id="recurrence-interval"><option value="monthly">Monthly</option><option value="weekly">Weekly</option><option value="yearly">Yearly</option></select>
+                    </div>
+                    <div class="form-group"><label for="recurrence-end">End after (occurrences, empty = forever)</label><input type="number" id="recurrence-end" min="1"></div>
                 </div>
-                <div id="recurring-options" class="hidden">
-                     <div class="form-group"><label for="frequency">Frequency</label><select id="frequency"><option value="weekly">Weekly</option><option value="monthly">Monthly</option><option value="yearly">Yearly</option></select></div>
-                     <div class="form-group"><label for="end-date">End Date (optional)</label><input type="date" id="end-date"></div>
-                </div>
+
                 <div class="modal-actions">
                     <button id="delete-btn" type="button" class="btn btn-danger hidden" style="margin-right: auto;">Delete</button>
                     <button id="cancel-btn" type="button" class="btn btn-secondary">Cancel</button>
@@ -195,28 +187,14 @@
         </div>
     </div>
     
-    <div id="settings-modal" class="modal-overlay hidden">
-        <div class="modal-content">
-            <h2>Settings</h2>
-            <div class="theme-switcher">
-                <label for="dark-mode-toggle">Dark Mode</label>
-                <input type="checkbox" id="dark-mode-toggle">
-            </div>
-            <hr>
-            <h4>Coming Soon</h4>
-            <p>Manage Categories, Currency, and more account settings will be available here.</p>
-            <div class="modal-actions">
-                 <button id="close-settings-btn" type="button" class="btn btn-secondary">Close</button>
-            </div>
-        </div>
-    </div>
-
     <div id="budgets-modal" class="modal-overlay hidden">
         <div class="modal-content">
-            <h2>Manage Budgets</h2><div id="budgets-list"></div><hr>
+            <h2>Manage Budgets</h2>
+            <div id="budgets-list"></div>
+            <hr>
             <h4>Add New Budget</h4>
             <form id="budget-form">
-                <div class="form-group"><label for="budget-category">Category</label><input type="text" id="budget-category" list="category-suggestions" required></div>
+                <div class="form-group"><label for="budget-category">Category</label><input type="text" id="budget-category" required></div>
                 <div class="form-group"><label for="budget-amount">Amount (€)</label><input type="number" step="0.01" id="budget-amount" required></div>
                 <div class="modal-actions">
                     <button id="cancel-budget-btn" type="button" class="btn btn-secondary">Close</button>
@@ -226,16 +204,37 @@
         </div>
     </div>
 
-    <div id="goals-modal" class="modal-overlay hidden">
+    <div id="savings-modal" class="modal-overlay hidden">
         <div class="modal-content">
-            <h2>Manage Savings Goals</h2><div id="goals-list"></div><hr>
+            <h2>Savings Goals</h2>
+            <div id="savings-list" class="savings-list"></div>
+            <hr>
             <h4>Add New Goal</h4>
-            <form id="goal-form">
-                <div class="form-group"><label for="goal-name">Goal Name (e.g., New Car)</label><input type="text" id="goal-name" required></div>
-                <div class="form-group"><label for="goal-amount">Target Amount (€)</label><input type="number" step="0.01" id="goal-amount" required></div>
+            <form id="savings-form">
+                <div class="form-group"><label for="goal-name">Name</label><input type="text" id="goal-name" required></div>
+                <div class="form-group"><label for="goal-target">Target Amount (€)</label><input type="number" step="0.01" id="goal-target" required></div>
+                <div class="form-group"><label for="goal-current">Current Saved (€)</label><input type="number" step="0.01" id="goal-current" value="0"></div>
                 <div class="modal-actions">
-                    <button id="cancel-goal-btn" type="button" class="btn btn-secondary">Close</button>
-                    <button id="save-goal-btn" type="submit" class="btn btn-primary">Add Goal</button>
+                    <button id="cancel-savings-btn" type="button" class="btn btn-secondary">Close</button>
+                    <button id="save-savings-btn" type="submit" class="btn btn-primary">Add Goal</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div id="settings-modal" class="modal-overlay hidden">
+        <div class="modal-content">
+            <h2>Settings</h2>
+            <form id="settings-form">
+                <div class="form-group"><label for="currency">Currency</label><input id="currency" value="EUR"></div>
+                <div class="form-group"><label for="week-start">Week starts on</label>
+                    <select id="week-start"><option value="0">Sunday</option><option value="1">Monday</option></select>
+                </div>
+                <div class="form-group"><label><input type="checkbox" id="auto-categorize"> Auto-categorize transactions</label></div>
+                <div class="form-group"><label><input type="checkbox" id="auto-detect-recurring"> Auto-detect recurring transactions</label></div>
+                <div class="modal-actions">
+                    <button id="cancel-settings-btn" type="button" class="btn btn-secondary">Close</button>
+                    <button id="save-settings-btn" type="submit" class="btn btn-primary">Save</button>
                 </div>
             </form>
         </div>
@@ -244,8 +243,9 @@
     <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore-compat.js"></script>
-    <script>
-        // --- 1. FIREBASE CONFIGURATION ---
+
+<script>
+        // --- FIREBASE CONFIG ---
         const firebaseConfig = {apiKey: "AIzaSyDzeI6mMuICNJdO_G2F7fiGFlQhyo8RWM8",
   authDomain: "budgeting-b3974.firebaseapp.com",
   projectId: "budgeting-b3974",
@@ -256,45 +256,40 @@
         const auth = firebase.auth();
         const db = firebase.firestore();
 
-        // --- 2. GLOBAL STATE & DOM ELEMENTS ---
+        // --- GLOBAL STATE & DOM ELEMENTS ---
         let currentDate = new Date();
-        let transactions = []; let budgets = []; let goals = []; let userCategories = [];
+        let transactions = []; let budgets = []; let recurringPayments = []; let savingsGoals = []; let settings = {};
         let user = null; let balanceChart = null;
+        const calendarGrid = document.getElementById('calendar-grid');
+        const monthYearLabel = document.getElementById('month-year-label');
+        const dayNamesContainer = document.getElementById('day-names');
+        const startingBalanceEl = document.getElementById('starting-balance');
+        const netFlowEl = document.getElementById('net-flow');
+        const endBalanceEl = document.getElementById('end-balance');
+        const savingsProgressEl = document.getElementById('savings-progress');
+        const txModal = document.getElementById('transaction-modal');
+        const txForm = document.getElementById('transaction-form');
+        const sidebar = document.getElementById('sidebar');
+        const menuToggleBtn = document.getElementById('menu-toggle-btn');
+        const menuOverlay = document.getElementById('menu-overlay');
+        const budgetsContainer = document.getElementById('budgets-container');
+        const budgetsModal = document.getElementById('budgets-modal');
+        const budgetForm = document.getElementById('budget-form');
+        const budgetsListEl = document.getElementById('budgets-list');
+        const savingsModal = document.getElementById('savings-modal');
+        const savingsListEl = document.getElementById('savings-list');
+        const savingsForm = document.getElementById('savings-form');
+        const settingsModal = document.getElementById('settings-modal');
+        const settingsForm = document.getElementById('settings-form');
+        const suggestionArea = document.getElementById('suggestion-area');
 
-        const dom = {
-            sidebar: document.getElementById('sidebar'),
-            menuToggleBtn: document.getElementById('menu-toggle-btn'),
-            menuOverlay: document.getElementById('menu-overlay'),
-            calendarGrid: document.getElementById('calendar-grid'),
-            monthYearLabel: document.getElementById('month-year-label'),
-            dayNamesContainer: document.getElementById('day-names'),
-            startingBalanceEl: document.getElementById('starting-balance'),
-            netFlowEl: document.getElementById('net-flow'),
-            endBalanceEl: document.getElementById('end-balance'),
-            txModal: document.getElementById('transaction-modal'),
-            txForm: document.getElementById('transaction-form'),
-            budgetsContainer: document.getElementById('budgets-container'),
-            budgetsModal: document.getElementById('budgets-modal'),
-            budgetForm: document.getElementById('budget-form'),
-            budgetsListEl: document.getElementById('budgets-list'),
-            settingsModal: document.getElementById('settings-modal'),
-            darkModeToggle: document.getElementById('dark-mode-toggle'),
-            goalsContainer: document.getElementById('goals-container'),
-            goalsModal: document.getElementById('goals-modal'),
-            goalForm: document.getElementById('goal-form'),
-            goalsListEl: document.getElementById('goals-list'),
-            recurringCheckbox: document.getElementById('recurring-checkbox'),
-            recurringOptions: document.getElementById('recurring-options')
-        };
-        
-        // --- 3. AUTHENTICATION & INITIALIZATION ---
+        // --- AUTH ---
         auth.onAuthStateChanged(firebaseUser => {
             if (firebaseUser) {
                 user = firebaseUser;
                 document.getElementById('app-container').classList.remove('hidden');
                 document.getElementById('auth-container').classList.add('hidden');
                 document.getElementById('user-email').textContent = user.email;
-                initializeTheme();
                 renderApp();
             } else {
                 user = null;
@@ -302,102 +297,69 @@
                 document.getElementById('auth-container').classList.remove('hidden');
             }
         });
-        
-        // --- 4. CORE APP LOGIC ---
+
+        // --- APP RENDER ---
         function renderApp() { renderCalendar(); fetchData(); }
 
+        // --- FETCH DATA ---
         async function fetchData() {
             if (!user) return;
             const year = currentDate.getFullYear();
             const month = currentDate.getMonth();
-            
-            const startOfMonth = new Date(year, month, 1);
-            const endOfMonth = new Date(year, month + 1, 0);
 
-            // Fetch all data concurrently
-            const [
-                startingBalance, 
-                txSnapshot, 
-                recurringTxSnapshot, 
-                budgetSnapshot, 
-                goalSnapshot, 
-                allTxSnapshot
-            ] = await Promise.all([
-                getStartingBalance(year, month),
-                db.collection('transactions').where('uid', '==', user.uid)
-                  .where('date', '>=', startOfMonth.toISOString().split('T')[0])
-                  .where('date', '<=', endOfMonth.toISOString().split('T')[0]).get(),
-                db.collection('recurring_transactions').where('uid', '==', user.uid).get(),
+            // fetch settings, budgets, transactions, recurring, savings
+            const [settingsDoc, txSnapshot, budgetSnapshot, recurringSnapshot, savingsSnapshot] = await Promise.all([
+                db.collection('settings').doc(user.uid).get().catch(()=>({exists:false})),
+                db.collection('transactions').where('uid', '==', user.uid).where('date', '>=', new Date(year, month, 1).toISOString().split('T')[0]).where('date', '<=', new Date(year, month + 1, 0).toISOString().split('T')[0]).get(),
                 db.collection('budgets').where('uid', '==', user.uid).where('year', '==', year).where('month', '==', month).get(),
-                db.collection('savings_goals').where('uid', '==', user.uid).get(),
-                db.collection('transactions').where('uid', '==', user.uid).get() // For category suggestions
+                db.collection('recurringPayments').where('uid', '==', user.uid).get(),
+                db.collection('savingsGoals').where('uid', '==', user.uid).get()
             ]);
-            
-            dom.startingBalanceEl.textContent = `€${startingBalance.toFixed(2)}`;
 
-            // Process one-time transactions
-            let monthlyTransactions = txSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-
-            // Generate recurring transactions for the current month
-            const recurringInstances = generateRecurringTransactions(recurringTxSnapshot, startOfMonth, endOfMonth);
-            transactions = [...monthlyTransactions, ...recurringInstances];
-            transactions.sort((a, b) => new Date(a.date) - new Date(b.date));
-
+            settings = settingsDoc && settingsDoc.exists ? settingsDoc.data() : { currency: 'EUR', weekStart: 1, autoCategorize: true, autoDetectRecurring: true };
+            transactions = txSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
             budgets = budgetSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-            goals = goalSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+            recurringPayments = recurringSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+            savingsGoals = savingsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 
-            // Generate category suggestions
-            const allTx = allTxSnapshot.docs.map(doc => doc.data());
-            userCategories = [...new Set(allTx.map(tx => tx.category).filter(Boolean))];
-            const categoryDatalist = document.getElementById('category-suggestions');
-            categoryDatalist.innerHTML = userCategories.map(c => `<option value="${c}"></option>`).join('');
+            // Intelligent augmentation: compute predicted recurring transactions for this month
+            const predictedRecurring = predictRecurringForMonth(currentDate.getFullYear(), currentDate.getMonth());
+            // Merge predicted (not saved) with actual transactions for display and calculations
+            const txsForDisplay = [...transactions, ...predictedRecurring];
 
-            renderAllComponents(startingBalance);
-        }
-
-        function renderAllComponents(startingBalance) {
-            renderTransactionsOnCalendar();
-            renderBudgets();
+            renderTransactionsOnCalendar(txsForDisplay);
+            renderBudgets(txsForDisplay);
             renderSavingsGoals();
-            updateSummaryAndChart(startingBalance);
+            detectRecurringSuggestions();
+
+            const startingBalance = await getStartingBalance(year, month);
+            updateSummaryAndChart(startingBalance, txsForDisplay);
         }
 
+        // --- STARTING BALANCE ---
         async function getStartingBalance(year, month) {
             if (!user) return 0;
             const yearMonthId = `${year}-${String(month).padStart(2, '0')}`;
             const overrideDoc = await db.collection('monthlyOverrides').doc(`${user.uid}_${yearMonthId}`).get();
-            if (overrideDoc.exists) return overrideDoc.data().startingBalance;
-            
-            // Calculate from all previous transactions if no override exists
-            const prevMonth = new Date(year, month, 0);
-            const startOfTime = new Date(0);
-            
-            const [txSnapshot, recTxSnapshot] = await Promise.all([
-                db.collection('transactions').where('uid', '==', user.uid)
-                  .where('date', '<=', prevMonth.toISOString().split('T')[0]).get(),
-                db.collection('recurring_transactions').where('uid', '==', user.uid).get()
-            ]);
-            
+
+            if (overrideDoc.exists) {
+                return overrideDoc.data().startingBalance;
+            }
+
+            const endOfPreviousMonth = new Date(year, month, 0).toISOString().split('T')[0];
+            const snapshot = await db.collection('transactions').where('uid', '==', user.uid).where('date', '<=', endOfPreviousMonth).get();
             let balance = 0;
-            txSnapshot.docs.forEach(doc => {
-                const tx = doc.data(); balance += tx.type === 'income' ? tx.amount : -tx.amount;
-            });
-            
-            // Add recurring transactions from all previous months
-            const recurringInstances = generateRecurringTransactions(recTxSnapshot, startOfTime, prevMonth);
-            recurringInstances.forEach(tx => {
-                balance += tx.type === 'income' ? tx.amount : -tx.amount;
-            });
-            
+            snapshot.docs.forEach(doc => { const tx = doc.data(); balance += tx.type === 'income' ? tx.amount : -tx.amount; });
             return balance;
         }
 
-        // --- 5. COMPONENT RENDERING ---
-        function renderBudgets() {
+        // --- RENDER BUDGETS (uses provided tx list) ---
+        function renderBudgets(txList=transactions) {
             if (budgets.length === 0) {
-                dom.budgetsContainer.innerHTML = '<p>No budgets set for this month.</p>'; return;
+                budgetsContainer.innerHTML = '<p>No budgets set for this month.</p>';
+                return;
             }
-            const spendingByCategory = transactions.reduce((acc, tx) => {
+            const spendingByCategory = txList.reduce((acc, tx) => {
                 if (tx.type === 'expense' && tx.category) {
                     const category = tx.category.toLowerCase();
                     acc[category] = (acc[category] || 0) + tx.amount;
@@ -405,317 +367,349 @@
                 return acc;
             }, {});
 
-            dom.budgetsContainer.innerHTML = budgets.map(budget => {
+            budgetsContainer.innerHTML = budgets.map(budget => {
                 const category = budget.category.toLowerCase();
                 const spent = spendingByCategory[category] || 0;
-                const progress = (spent / budget.amount) * 100;
+                const progress = Math.min((spent / budget.amount) * 100, 100);
                 const isOverBudget = spent > budget.amount;
-                return `<div class="budget-item">
-                    <div class="budget-item-info"><span>${budget.category}</span><span>€${spent.toFixed(2)} / €${budget.amount.toFixed(2)}</span></div>
-                    <div class="progress-bar"><div class="progress-bar-fill ${isOverBudget ? 'over-budget' : ''}" style="width: ${Math.min(progress, 100)}%"></div></div>
-                </div>`;
-            }).join('');
-        }
-        
-        function renderSavingsGoals() {
-            if (goals.length === 0) {
-                dom.goalsContainer.innerHTML = '<p>No savings goals set.</p>'; return;
-            }
-            dom.goalsContainer.innerHTML = goals.map(goal => {
-                const saved = goal.currentAmount || 0;
-                const progress = (saved / goal.targetAmount) * 100;
-                return `<div class="budget-item">
-                    <div class="budget-item-info"><span>${goal.name}</span><span>€${saved.toFixed(2)} / €${goal.targetAmount.toFixed(2)}</span></div>
-                    <div class="progress-bar"><div class="progress-bar-fill" style="width: ${Math.min(progress, 100)}%"></div></div>
-                </div>`;
+                return `
+                <div class="budget-item">
+                    <div class="budget-item-info">
+                        <span>${budget.category}</span>
+                        <span>€${spent.toFixed(2)} / €${budget.amount.toFixed(2)}</span>
+                    </div>
+                    <div class="progress-bar">
+                        <div class="progress-bar-fill ${isOverBudget ? 'over-budget' : ''}" style="width: ${progress}%"></div>
+                    </div>
+                </div>
+                `;
             }).join('');
         }
 
-        function updateSummaryAndChart(startingBalance) {
-            let totalIncome = 0, totalExpense = 0;
-            transactions.forEach(tx => {
-                if (tx.type === 'income') totalIncome += tx.amount; else totalExpense += tx.amount;
+        // --- SAVINGS GOALS ---
+        function renderSavingsGoals() {
+            if (savingsGoals.length === 0) {
+                savingsListEl.innerHTML = '<p>No savings goals set.</p>';
+            } else {
+                savingsListEl.innerHTML = savingsGoals.map(g => {
+                    const pct = Math.min((g.current / g.target) * 100, 100);
+                    return `<div class="goal-row"><div><strong>${g.name}</strong><div style="font-size:12px; color:${pct>=100? 'var(--income-color)':'var(--secondary-text)'}">€${g.current.toFixed(2)} / €${g.target.toFixed(2)} (${pct.toFixed(0)}%)</div></div><div><button class="btn btn-danger" data-id="${g.id}" style="padding:4px 8px">X</button></div></div>`;
+                }).join('');
+            }
+            // show total savings progress in summary card
+            const totalSaved = savingsGoals.reduce((s, g) => s + (g.current || 0), 0);
+            const totalTarget = savingsGoals.reduce((s, g) => s + (g.target || 0), 0) || 1;
+            savingsProgressEl.textContent = `€${totalSaved.toFixed(2)} / €${totalTarget.toFixed(2)}`;
+        }
+
+        // --- PREDICT RECURRING FOR DISPLAY (not persisted) ---
+        function predictRecurringForMonth(year, month) {
+            const predicted = [];
+            recurringPayments.forEach(r => {
+                // simple rules: if recurrence is monthly, check if event overlaps month range and not ended
+                const start = new Date(r.startDate);
+                const end = r.endAfter ? null : null; // we use occurrences instead
+                // compute occurrences up to a limit
+                const occurrences = r.endAfter || 100;
+                let current = new Date(start);
+                let count = 0;
+                while (count < occurrences) {
+                    if (current.getFullYear() === year && current.getMonth() === month) {
+                        predicted.push({ id: `pred_${r.id}_${count}`, uid: r.uid, title: r.title, amount: r.amount, type: r.type, date: current.toISOString().split('T')[0], category: r.category, predicted: true });
+                        break; // only one instance per recurring rule for the month
+                    }
+                    // advance
+                    if (r.interval === 'monthly') current.setMonth(current.getMonth() + 1);
+                    else if (r.interval === 'weekly') current.setDate(current.getDate() + 7);
+                    else if (r.interval === 'yearly') current.setFullYear(current.getFullYear() + 1);
+                    count++;
+                }
             });
+            return predicted;
+        }
+
+        // --- UPDATED CHART LOGIC (accepts tx list) ---
+        function updateSummaryAndChart(startingBalance, txList=transactions) {
+            let totalIncome = 0, totalExpense = 0;
+            txList.forEach(tx => { if (tx.type === 'income') totalIncome += tx.amount; else totalExpense += tx.amount; });
             const netFlow = totalIncome - totalExpense;
-            dom.netFlowEl.textContent = `€${netFlow.toFixed(2)}`;
-            dom.netFlowEl.className = `amount ${netFlow >= 0 ? 'positive' : 'negative'}`;
+            netFlowEl.textContent = `€${netFlow.toFixed(2)}`;
+            netFlowEl.className = `amount ${netFlow >= 0 ? 'positive' : 'negative'}`;
 
             const daysInMonth = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0).getDate();
+            const totalMonthlyBudget = budgets.reduce((sum, budget) => sum + budget.amount, 0);
+            const dailyBudgetBurn = totalMonthlyBudget / daysInMonth;
+
             const labels = Array.from({ length: daysInMonth }, (_, i) => i + 1);
-            let dailyBalances = [];
-            let currentBalance = startingBalance;
-            let cumulativeNet = 0;
+            let dailyBalances = [], currentBalance = startingBalance;
 
-            const transactionsByDay = {};
-            transactions.forEach(tx => {
-                const day = new Date(tx.date).getUTCDate(); // Use UTC to avoid timezone issues
-                if (!transactionsByDay[day]) transactionsByDay[day] = 0;
-                transactionsByDay[day] += tx.type === 'income' ? tx.amount : -tx.amount;
-            });
-
-            for (let day = 1; day <= daysInMonth; day++) {
-                cumulativeNet += transactionsByDay[day] || 0;
-                dailyBalances.push(startingBalance + cumulativeNet);
+            for (let i = 1; i <= daysInMonth; i++) {
+                let actualDailyNetChange = 0;
+                const dateStr = new Date(currentDate.getFullYear(), currentDate.getMonth(), i).toISOString().split('T')[0];
+                txList.filter(tx => tx.date === dateStr).forEach(tx => { actualDailyNetChange += tx.type === 'income' ? tx.amount : -tx.amount; });
+                // Intelligent adjustment: if a predicted transaction exists mark it visually; modeling already includes it
+                currentBalance = currentBalance - dailyBudgetBurn + actualDailyNetChange;
+                dailyBalances.push(currentBalance);
             }
-            
+
             const finalPredictedBalance = dailyBalances.length > 0 ? dailyBalances[dailyBalances.length - 1] : startingBalance;
-            dom.endBalanceEl.textContent = `€${finalPredictedBalance.toFixed(2)}`;
-            dom.endBalanceEl.className = `amount ${finalPredictedBalance >= 0 ? 'positive' : 'negative'}`;
+            endBalanceEl.textContent = `€${finalPredictedBalance.toFixed(2)}`;
+            endBalanceEl.className = `amount ${finalPredictedBalance >= 0 ? 'positive' : 'negative'}`;
 
             const ctx = document.getElementById('balance-chart').getContext('2d');
             if (balanceChart) balanceChart.destroy();
-            balanceChart = new Chart(ctx, {
-                type: 'line',
-                data: { labels, datasets: [{ label: 'Predicted Balance', data: dailyBalances, borderColor: 'var(--accent-color)', tension: 0.1, fill: false }] },
-                options: { scales: { y: { ticks: { callback: value => '€' + value } } } }
-            });
+            balanceChart = new Chart(ctx, { type: 'line', data: { labels, datasets: [{ label: 'Predicted Balance', data: dailyBalances, borderColor: 'var(--accent-color)', tension: 0.1, fill: false }] } });
         }
 
-        // --- 6. MODAL & FORM HANDLING ---
+        // --- TRANSACTION MODAL HANDLING ---
         function openTxModal(date, transaction = null) {
-            dom.txForm.reset(); dom.txModal.classList.remove('hidden');
+            txForm.reset(); txModal.classList.remove('hidden');
             document.getElementById('date').value = date;
-            dom.recurringOptions.classList.add('hidden');
             const deleteBtn = document.getElementById('delete-btn');
-            
+            document.getElementById('recurrence-options').classList.add('hidden');
+            document.getElementById('recurring-checkbox').checked = false;
             if (transaction) {
                 document.getElementById('modal-title').textContent = 'Edit Transaction';
-                document.getElementById('is-recurring-rule').value = transaction.isRecurringRule || false;
-                document.getElementById('transaction-id').value = transaction.id || '';
-                document.getElementById('title').value = transaction.title || '';
-                document.getElementById('amount').value = transaction.amount || '';
-                document.getElementById('type').value = transaction.type || 'expense';
-                document.getElementById('date').value = transaction.date || date;
-                document.getElementById('category').value = transaction.category || '';
-                
-                if (transaction.isRecurringRule) {
-                    dom.recurringCheckbox.checked = true;
-                    dom.recurringOptions.classList.remove('hidden');
-                    document.getElementById('frequency').value = transaction.frequency;
-                    document.getElementById('end-date').value = transaction.endDate || '';
-                    document.getElementById('date').disabled = true; // Can't change start date of rule here
-                } else {
-                    document.getElementById('date').disabled = false;
+                ['id', 'title', 'amount', 'type', 'date', 'category'].forEach(field => { 
+                    const el = document.getElementById(field === 'id' ? 'transaction-id' : field);
+                    if(el) el.value = transaction[field] || '';
+                });
+                // If transaction is recurring, populate recurrence fields (load from recurringPayments)
+                if (transaction.recurringId) {
+                    const r = recurringPayments.find(rr => rr.id === transaction.recurringId);
+                    if (r) {
+                        document.getElementById('recurring-checkbox').checked = true;
+                        document.getElementById('recurrence-options').classList.remove('hidden');
+                        document.getElementById('recurrence-interval').value = r.interval || 'monthly';
+                        document.getElementById('recurrence-end').value = r.endAfter || '';
+                    }
                 }
                 deleteBtn.classList.remove('hidden');
             } else {
                 document.getElementById('modal-title').textContent = 'Add Transaction';
                 document.getElementById('transaction-id').value = '';
-                document.getElementById('is-recurring-rule').value = false;
                 deleteBtn.classList.add('hidden');
-                document.getElementById('date').disabled = false;
             }
         }
-        function closeTxModal() { dom.txModal.classList.add('hidden'); }
-        dom.txForm.addEventListener('submit', async (e) => {
+        function closeTxModal() { txModal.classList.add('hidden'); }
+
+        document.getElementById('recurring-checkbox').addEventListener('change', (e) => {
+            document.getElementById('recurrence-options').classList.toggle('hidden', !e.target.checked);
+        });
+
+        txForm.addEventListener('submit', async (e) => {
             e.preventDefault(); if (!user) return;
             const id = document.getElementById('transaction-id').value;
-            const isRecurringRule = document.getElementById('is-recurring-rule').value === 'true';
-            const isRecurring = dom.recurringCheckbox.checked;
-
-            const baseData = {
+            let transactionData = {
                 uid: user.uid,
                 title: document.getElementById('title').value,
                 amount: parseFloat(document.getElementById('amount').value),
                 type: document.getElementById('type').value,
+                date: document.getElementById('date').value,
                 category: document.getElementById('category').value.trim()
             };
 
+            // Auto-categorize if enabled
+            if (settings.autoCategorize && !transactionData.category) transactionData.category = autoCategorizeTitle(transactionData.title);
+
             try {
-                if (isRecurring) {
-                    const recurringData = { ...baseData, 
-                        startDate: document.getElementById('date').value,
-                        frequency: document.getElementById('frequency').value,
-                        endDate: document.getElementById('end-date').value || null 
-                    };
-                    if (id && isRecurringRule) {
-                        await db.collection('recurring_transactions').doc(id).update(recurringData);
-                    } else {
-                        await db.collection('recurring_transactions').add(recurringData);
-                    }
-                } else {
-                    const transactionData = { ...baseData, date: document.getElementById('date').value };
-                    if (id) {
-                        if (isRecurringRule) { // Deleting old rule and creating one-off
-                             await db.collection('recurring_transactions').doc(id).delete();
-                             await db.collection('transactions').add(transactionData);
-                        } else {
-                            await db.collection('transactions').doc(id).update(transactionData);
-                        }
-                    } else {
-                        await db.collection('transactions').add(transactionData);
+                if (id) await db.collection('transactions').doc(id).update(transactionData);
+                else {
+                    const added = await db.collection('transactions').add(transactionData);
+                    // If recurring option checked, save recurring rule
+                    if (document.getElementById('recurring-checkbox').checked) {
+                        const r = {
+                            uid: user.uid,
+                            title: transactionData.title,
+                            amount: transactionData.amount,
+                            type: transactionData.type,
+                            category: transactionData.category,
+                            startDate: transactionData.date,
+                            interval: document.getElementById('recurrence-interval').value,
+                            endAfter: parseInt(document.getElementById('recurrence-end').value) || null
+                        };
+                        const rdoc = await db.collection('recurringPayments').add(r);
+                        // attach recurringId to initial transaction
+                        await db.collection('transactions').doc(added.id).update({ recurringId: rdoc.id });
                     }
                 }
                 closeTxModal(); fetchData();
-            } catch (error) { console.error(error); alert("Could not save: " + error.message); }
+            } catch (error) { alert("Could not save transaction: " + error.message); }
         });
-        
-        // --- 7. RECURRING TRANSACTION LOGIC ---
-        function generateRecurringTransactions(snapshot, startDate, endDate) {
-            const instances = [];
-            snapshot.docs.forEach(doc => {
-                const rule = { id: doc.id, ...doc.data() };
-                let current = new Date(rule.startDate + 'T00:00:00'); // Ensure it's treated as local
-                const end = rule.endDate ? new Date(rule.endDate + 'T00:00:00') : null;
-                
-                while ((!end || current <= end)) {
-                    if (current > endDate) break; // Optimization
-                    if (current >= startDate) {
-                        instances.push({
-                            ...rule,
-                            date: current.toISOString().split('T')[0],
-                            isRecurring: true,
-                            isRecurringRule: false // This is an instance, not the rule itself
-                        });
-                    }
-                    if (rule.frequency === 'weekly') current.setDate(current.getDate() + 7);
-                    else if (rule.frequency === 'monthly') current.setMonth(current.getMonth() + 1);
-                    else if (rule.frequency === 'yearly') current.setFullYear(current.getFullYear() + 1);
-                    else break; // Should not happen
-                }
-            });
-            return instances;
-        }
 
-        // --- 8. EVENT LISTENERS ---
-        document.getElementById('logout-btn').addEventListener('click', () => auth.signOut());
-        dom.menuToggleBtn.addEventListener('click', () => { dom.sidebar.classList.toggle('is-open'); dom.menuOverlay.classList.toggle('hidden'); });
-        dom.menuOverlay.addEventListener('click', () => { dom.sidebar.classList.remove('is-open'); dom.menuOverlay.classList.add('hidden'); });
-        document.getElementById('cancel-btn').addEventListener('click', closeTxModal);
-        document.getElementById('prev-month-btn').addEventListener('click', () => { currentDate.setMonth(currentDate.getMonth() - 1); renderApp(); });
-        document.getElementById('next-month-btn').addEventListener('click', () => { currentDate.setMonth(currentDate.getMonth() + 1); renderApp(); });
         document.getElementById('delete-btn').addEventListener('click', async () => {
-            const id = document.getElementById('transaction-id').value;
-            const isRecurringRule = document.getElementById('is-recurring-rule').value === 'true';
-            const collectionName = isRecurringRule ? 'recurring_transactions' : 'transactions';
-            if (confirm(`Are you sure you want to delete this ${isRecurringRule ? 'recurring rule' : 'transaction'}?`)) { 
-                await db.collection(collectionName).doc(id).delete(); closeTxModal(); fetchData(); 
-            }
-        });
-        document.getElementById('login-btn').addEventListener('click', () => { auth.signInWithEmailAndPassword(document.getElementById('email-input').value, document.getElementById('password-input').value).catch(err => alert(err.message)); });
-        document.getElementById('signup-btn').addEventListener('click', () => { auth.createUserWithEmailAndPassword(document.getElementById('email-input').value, document.getElementById('password-input').value).catch(err => alert(err.message)); });
-        dom.recurringCheckbox.addEventListener('change', (e) => dom.recurringOptions.classList.toggle('hidden', !e.target.checked));
-        
-        // Settings listeners
-        document.getElementById('settings-btn').addEventListener('click', () => dom.settingsModal.classList.remove('hidden'));
-        document.getElementById('close-settings-btn').addEventListener('click', () => dom.settingsModal.classList.add('hidden'));
-        dom.darkModeToggle.addEventListener('change', (e) => {
-            document.body.classList.toggle('dark-mode', e.target.checked);
-            localStorage.setItem('theme', e.target.checked ? 'dark' : 'light');
+            const txId = document.getElementById('transaction-id').value;
+            if (!txId) return;
+            if (confirm('Are you sure you want to delete this transaction?')) { await db.collection('transactions').doc(txId).delete(); closeTxModal(); fetchData(); }
         });
 
-        // Budgets listeners
-        document.getElementById('manage-budgets-btn').addEventListener('click', () => {
-            dom.budgetsListEl.innerHTML = budgets.map(b => `<div class="list-item-row"><span>${b.category}: €${b.amount.toFixed(2)}</span><button class="btn btn-danger" data-id="${b.id}" style="padding:2px 8px;font-size:12px;">X</button></div>`).join('');
-            dom.budgetsModal.classList.remove('hidden');
-        });
-        document.getElementById('cancel-budget-btn').addEventListener('click', () => dom.budgetsModal.classList.add('hidden'));
-        dom.budgetsListEl.addEventListener('click', async e => {
-            if (e.target.tagName === 'BUTTON' && confirm('Delete budget?')) {
-                await db.collection('budgets').doc(e.target.dataset.id).delete(); fetchData();
-            }
-        });
-        dom.budgetForm.addEventListener('submit', async e => {
+        // --- BUDGETS ---
+        function openBudgetsModal() {
+            budgetsListEl.innerHTML = budgets.map(b => `
+                <div class="budget-item-row">
+                    <span>${b.category}: €${b.amount.toFixed(2)}</span>
+                    <button class="btn btn-danger btn-sm" data-id="${b.id}" style="padding: 2px 8px; font-size: 12px;">X</button>
+                </div>
+            `).join('');
+            budgetsModal.classList.remove('hidden');
+        }
+        function closeBudgetsModal() { budgetsModal.classList.add('hidden'); }
+        budgetForm.addEventListener('submit', async (e) => {
             e.preventDefault();
-            await db.collection('budgets').add({
-                uid: user.uid, year: currentDate.getFullYear(), month: currentDate.getMonth(),
+            const newBudget = {
+                uid: user.uid,
+                year: currentDate.getFullYear(),
+                month: currentDate.getMonth(),
                 category: document.getElementById('budget-category').value.trim(),
                 amount: parseFloat(document.getElementById('budget-amount').value)
-            });
-            dom.budgetForm.reset(); fetchData(); dom.budgetsModal.classList.add('hidden');
+            };
+            if (!newBudget.category || !newBudget.amount) return;
+            await db.collection('budgets').add(newBudget);
+            budgetForm.reset();
+            fetchData();
+            closeBudgetsModal();
         });
-
-        // Savings Goals listeners
-        document.getElementById('manage-goals-btn').addEventListener('click', () => {
-             dom.goalsListEl.innerHTML = goals.map(g => `<div class="list-item-row"><span>${g.name}: €${(g.currentAmount || 0).toFixed(2)} / €${g.targetAmount.toFixed(2)}</span><button class="btn btn-danger" data-id="${g.id}" style="padding:2px 8px;font-size:12px;">X</button></div>`).join('');
-             dom.goalsModal.classList.remove('hidden');
-        });
-        document.getElementById('cancel-goal-btn').addEventListener('click', () => dom.goalsModal.classList.add('hidden'));
-        dom.goalsListEl.addEventListener('click', async e => {
-            if (e.target.tagName === 'BUTTON' && confirm('Delete goal? This won\'t delete contributions.')) {
-                await db.collection('savings_goals').doc(e.target.dataset.id).delete(); fetchData();
+        budgetsListEl.addEventListener('click', async (e) => {
+            if (e.target.tagName === 'BUTTON') {
+                const id = e.target.dataset.id;
+                if(confirm('Are you sure you want to delete this budget?')) {
+                    await db.collection('budgets').doc(id).delete();
+                    fetchData();
+                    closeBudgetsModal();
+                }
             }
         });
-        dom.goalForm.addEventListener('submit', async e => {
+
+        // --- SAVINGS GOALS HANDLING ---
+        document.getElementById('manage-savings-btn').addEventListener('click', () => savingsModal.classList.remove('hidden'));
+        document.getElementById('cancel-savings-btn').addEventListener('click', () => savingsModal.classList.add('hidden'));
+        savingsForm.addEventListener('submit', async (e) => {
             e.preventDefault();
-            await db.collection('savings_goals').add({
-                uid: user.uid, name: document.getElementById('goal-name').value.trim(),
-                targetAmount: parseFloat(document.getElementById('goal-amount').value),
-                currentAmount: 0
-            });
-            dom.goalForm.reset(); fetchData(); dom.goalsModal.classList.add('hidden');
+            const g = { uid: user.uid, name: document.getElementById('goal-name').value.trim(), target: parseFloat(document.getElementById('goal-target').value), current: parseFloat(document.getElementById('goal-current').value) || 0 };
+            if (!g.name || !g.target) return;
+            await db.collection('savingsGoals').add(g);
+            savingsForm.reset();
+            fetchData();
+            savingsModal.classList.add('hidden');
+        });
+        savingsListEl.addEventListener('click', async (e) => {
+            if (e.target.tagName === 'BUTTON') {
+                const id = e.target.dataset.id;
+                if (confirm('Delete this savings goal?')) { await db.collection('savingsGoals').doc(id).delete(); fetchData(); }
+            }
         });
 
-        // Balance Override Listener
+        // --- SETTINGS HANDLING ---
+        document.getElementById('open-settings-btn').addEventListener('click', async () => {
+            // populate form
+            document.getElementById('currency').value = settings.currency || 'EUR';
+            document.getElementById('week-start').value = settings.weekStart != null ? settings.weekStart : 1;
+            document.getElementById('auto-categorize').checked = !!settings.autoCategorize;
+            document.getElementById('auto-detect-recurring').checked = !!settings.autoDetectRecurring;
+            settingsModal.classList.remove('hidden');
+        });
+        document.getElementById('cancel-settings-btn').addEventListener('click', () => settingsModal.classList.add('hidden'));
+        settingsForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const newSettings = { currency: document.getElementById('currency').value, weekStart: parseInt(document.getElementById('week-start').value), autoCategorize: document.getElementById('auto-categorize').checked, autoDetectRecurring: document.getElementById('auto-detect-recurring').checked };
+            await db.collection('settings').doc(user.uid).set(newSettings);
+            settings = newSettings;
+            settingsModal.classList.add('hidden');
+            fetchData();
+        });
+
+        // --- SIMPLE AUTO-CATEGORIZATION ---
+        function autoCategorizeTitle(title) {
+            const map = {
+                'rent': 'Rent', 'landlord': 'Rent', 'salary': 'Salary', 'paycheck': 'Salary', 'uber': 'Transport', 'lyft': 'Transport', 'grocer': 'Groceries', 'aldi': 'Groceries', 'lidl':'Groceries', 'netflix':'Entertainment', 'spotify':'Entertainment', 'gym':'Fitness'
+            };
+            const t = title.toLowerCase();
+            for (const k in map) if (t.includes(k)) return map[k];
+            return '';
+        }
+
+        // --- RECURRING SUGGESTIONS (simple pattern detection) ---
+        function detectRecurringSuggestions() {
+            if (!settings.autoDetectRecurring) return;
+            suggestionArea.innerHTML = '';
+            // group by title rounded amount
+            const groups = {};
+            transactions.forEach(tx => {
+                const key = `${tx.title.toLowerCase()}_${Math.round(tx.amount*100)/100}`;
+                if (!groups[key]) groups[key] = [];
+                groups[key].push(tx);
+            });
+            // if any group has 2+ entries with roughly monthly spacing, suggest
+            for (const key in groups) {
+                const g = groups[key];
+                if (g.length < 2) continue;
+                // check approximate 28-32 day spacing
+                g.sort((a,b)=> new Date(a.date)-new Date(b.date));
+                let monthlyLike = true;
+                for (let i=1;i<g.length;i++){
+                    const d1 = new Date(g[i-1].date); const d2 = new Date(g[i].date);
+                    const diff = (d2 - d1)/(1000*60*60*24);
+                    if (!(diff > 25 && diff < 35)) { monthlyLike = false; break; }
+                }
+                if (monthlyLike) {
+                    const sample = g[0];
+                    suggestionArea.innerHTML = `<div class="suggestion-banner">Detected recurring pattern: <strong>${sample.title} — €${sample.amount.toFixed(2)}</strong>. <button id="convert-rec-${encodeURIComponent(key)}" class="btn btn-primary" style="margin-left:8px; padding:6px 8px; font-size:12px;">Convert to recurring</button></div>`;
+                    document.getElementById(`convert-rec-${encodeURIComponent(key)}`).addEventListener('click', async ()=>{
+                        // create simple recurring rule starting from first occurrence
+                        const r = { uid: user.uid, title: sample.title, amount: sample.amount, type: sample.type, category: sample.category||'', startDate: sample.date, interval: 'monthly', endAfter: null };
+                        await db.collection('recurringPayments').add(r);
+                        alert('Recurring rule created.');
+                        fetchData();
+                    });
+                    break; // show one suggestion at a time
+                }
+            }
+        }
+
+        // --- RENDER CALENDAR & TRANSACTIONS ---
+        function renderCalendar() {
+            calendarGrid.innerHTML = ''; monthYearLabel.textContent = currentDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+            const month = currentDate.getMonth(), year = currentDate.getFullYear();
+            const firstDayOfMonth = new Date(year, month, 1).getDay(); const daysInMonth = new Date(year, month + 1, 0).getDate();
+            if (dayNamesContainer && dayNamesContainer.children.length === 0) { ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].forEach(name => { const el = document.createElement('div'); el.className = 'calendar-day-name'; el.textContent = name; dayNamesContainer.appendChild(el); }); }
+            for (let i = 0; i < firstDayOfMonth; i++) { const cell = document.createElement('div'); cell.className = 'calendar-day other-month'; calendarGrid.appendChild(cell); }
+            for (let i = 1; i <= daysInMonth; i++) { const cell = document.createElement('div'); cell.className = 'calendar-day'; cell.innerHTML = `<div class="day-number">${i}</div>`; cell.dataset.date = new Date(year, month, i).toISOString().split('T')[0]; cell.addEventListener('click', () => openTxModal(cell.dataset.date)); calendarGrid.appendChild(cell); }
+        }
+
+        function renderTransactionsOnCalendar(txList=transactions) {
+            document.querySelectorAll('.transaction-pill').forEach(pill => pill.remove());
+            txList.forEach(tx => { const dayCell = document.querySelector(`.calendar-day[data-date="${tx.date}"]`); if (dayCell) { const pill = document.createElement('div'); pill.className = `transaction-pill ${tx.type}`; pill.textContent = tx.title + (tx.predicted ? ' (pred)' : ''); pill.title = tx.amount ? `€${tx.amount.toFixed(2)}` : '';
+                    pill.addEventListener('click', (e) => { e.stopPropagation(); openTxModal(tx.date, tx); }); dayCell.appendChild(pill); } });
+        }
+
+        // --- SIMPLE UI EVENT BINDINGS ---
         document.getElementById('starting-balance-card').addEventListener('click', async () => {
-            const newBalanceStr = prompt("Enter new starting balance for this month:", dom.startingBalanceEl.textContent.replace('€', ''));
+            const currentBalanceText = startingBalanceEl.textContent.replace('€', '');
+            const newBalanceStr = prompt("Enter the new starting balance for this month:", currentBalanceText);
             if (newBalanceStr !== null) {
                 const newBalance = parseFloat(newBalanceStr);
                 if (!isNaN(newBalance)) {
-                    await db.collection('monthlyOverrides').doc(`${user.uid}_${currentDate.getFullYear()}-${String(currentDate.getMonth()).padStart(2, '0')}`).set({ startingBalance: newBalance });
+                    const year = currentDate.getFullYear();
+                    const month = currentDate.getMonth();
+                    const yearMonthId = `${year}-${String(month).padStart(2, '0')}`;
+                    await db.collection('monthlyOverrides').doc(`${user.uid}_${yearMonthId}`).set({ startingBalance: newBalance });
                     fetchData();
-                } else { alert("Invalid number."); }
+                } else { alert("Invalid number entered."); }
             }
         });
+        menuToggleBtn.addEventListener('click', () => { sidebar.classList.toggle('is-open'); menuOverlay.classList.toggle('hidden'); });
+        menuOverlay.addEventListener('click', () => { sidebar.classList.toggle('is-open'); menuOverlay.classList.toggle('hidden'); });
+        document.getElementById('cancel-btn').addEventListener('click', closeTxModal);
+        document.getElementById('manage-budgets-btn').addEventListener('click', openBudgetsModal);
+        document.getElementById('cancel-budget-btn').addEventListener('click', closeBudgetsModal);
+        document.getElementById('prev-month-btn').addEventListener('click', () => { currentDate.setMonth(currentDate.getMonth() - 1); renderApp(); });
+        document.getElementById('next-month-btn').addEventListener('click', () => { currentDate.setMonth(currentDate.getMonth() + 1); renderApp(); });
+        document.getElementById('login-btn').addEventListener('click', () => { auth.signInWithEmailAndPassword(document.getElementById('email-input').value, document.getElementById('password-input').value).catch(err => alert(err.message)); });
+        document.getElementById('signup-btn').addEventListener('click', () => { auth.createUserWithEmailAndPassword(document.getElementById('email-input').value, document.getElementById('password-input').value).catch(err => alert(err.message)); });
 
-        // --- 9. UTILITY FUNCTIONS ---
-        function initializeTheme() {
-            const savedTheme = localStorage.getItem('theme') || 'light';
-            dom.darkModeToggle.checked = savedTheme === 'dark';
-            document.body.classList.toggle('dark-mode', savedTheme === 'dark');
-        }
+        // --- HELPER: basic cleanup on load
+        window.addEventListener('load', () => { renderCalendar(); });
 
-        function renderCalendar() {
-            dom.calendarGrid.innerHTML = '';
-            dom.monthYearLabel.textContent = currentDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
-            const month = currentDate.getMonth(), year = currentDate.getFullYear();
-            const firstDayOfMonth = (new Date(year, month, 1).getDay() + 6) % 7; // Monday is 0
-            const daysInMonth = new Date(year, month + 1, 0).getDate();
-            if (dom.dayNamesContainer.children.length === 0) {
-                ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].forEach(name => {
-                    const el = document.createElement('div'); el.className = 'calendar-day-name'; el.textContent = name; dom.dayNamesContainer.appendChild(el);
-                });
-            }
-            for (let i = 0; i < firstDayOfMonth; i++) {
-                dom.calendarGrid.appendChild(document.createElement('div'));
-            }
-            for (let i = 1; i <= daysInMonth; i++) {
-                const cell = document.createElement('div');
-                cell.className = 'calendar-day';
-                cell.innerHTML = `<div class="day-number">${i}</div>`;
-                const dateStr = new Date(year, month, i).toISOString().split('T')[0];
-                cell.dataset.date = dateStr;
-                cell.addEventListener('click', () => openTxModal(dateStr));
-                dom.calendarGrid.appendChild(cell);
-            }
-        }
-
-        function renderTransactionsOnCalendar() {
-            document.querySelectorAll('.transaction-pill').forEach(pill => pill.remove());
-            transactions.forEach(tx => {
-                const dayCell = document.querySelector(`.calendar-day[data-date="${tx.date}"]`);
-                if (dayCell) {
-                    const pill = document.createElement('div');
-                    pill.className = `transaction-pill ${tx.type} ${tx.isRecurring ? 'recurring' : ''}`;
-                    pill.textContent = tx.title;
-                    pill.title = `€${tx.amount.toFixed(2)} - ${tx.category || 'Uncategorized'}`;
-                    pill.addEventListener('click', (e) => {
-                        e.stopPropagation();
-                        // If it's a generated instance, we need to find its master rule to edit
-                        if (tx.isRecurring && !tx.isRecurringRule) {
-                            db.collection('recurring_transactions').doc(tx.id).get().then(doc => {
-                                if (doc.exists) {
-                                    openTxModal(tx.date, { id: doc.id, ...doc.data(), isRecurringRule: true });
-                                }
-                            });
-                        } else {
-                            openTxModal(tx.date, tx);
-                        }
-                    });
-                    dayCell.appendChild(pill);
-                }
-            });
-        }
     </script>
 </body>
 </html>
