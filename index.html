@@ -307,12 +307,12 @@
         // --- 1. FIREBASE CONFIGURATION ---
         // PASTE YOUR FIREBASE CONFIGURATION OBJECT HERE
         const firebaseConfig = {
-          apiKey: "AIzaSyDzeI6mMuICNJdO_G2F7fiGFlQhyo8RWM8",
-          authDomain: "budgeting-b3974.firebaseapp.com",      
-          projectId: "budgeting-b3974",
-          storageBucket: "budgeting-b3974.firebasestorage.app",    
-          messagingSenderId: "462817466291",
-          appId: "1:462817466291:web:13260b80355f9d0b559dc6"
+            apiKey: "YOUR_API_KEY",
+            authDomain: "YOUR_AUTH_DOMAIN",
+            projectId: "YOUR_PROJECT_ID",
+            storageBucket: "YOUR_STORAGE_BUCKET",
+            messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
+            appId: "YOUR_APP_ID"
         };
 
         // Initialize Firebase
@@ -380,7 +380,6 @@
             const firstDayOfMonth = new Date(year, month, 1).getDay();
             const daysInMonth = new Date(year, month + 1, 0).getDate();
 
-            // Create day name headers
             const dayNamesContainer = document.getElementById('day-names');
             if(dayNamesContainer.children.length === 0) {
               const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
@@ -426,7 +425,6 @@
         }
 
         function renderTransactionsOnCalendar() {
-            // Clear existing pills
             document.querySelectorAll('.transaction-pill').forEach(pill => pill.remove());
             
             transactions.forEach(tx => {
@@ -436,7 +434,7 @@
                     pill.className = `transaction-pill ${tx.type}`;
                     pill.textContent = tx.title;
                     pill.addEventListener('click', (e) => {
-                        e.stopPropagation(); // Prevent opening a new modal
+                        e.stopPropagation();
                         openModal(tx.date, tx);
                     });
                     dayCell.appendChild(pill);
@@ -456,11 +454,10 @@
             document.getElementById('net-flow').textContent = `€${netFlow.toFixed(2)}`;
             document.getElementById('net-flow').className = `amount ${netFlow >= 0 ? 'positive' : 'negative'}`;
 
-            // Chart logic
             const daysInMonth = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0).getDate();
             const labels = Array.from({ length: daysInMonth }, (_, i) => i + 1);
             const dailyBalances = [];
-            let currentBalance = 0; // Replace with a starting balance if needed
+            let currentBalance = 0;
 
             for (let i = 1; i <= daysInMonth; i++) {
                 const dateStr = new Date(currentDate.getFullYear(), currentDate.getMonth(), i).toISOString().split('T')[0];
@@ -518,8 +515,15 @@
             modal.classList.add('hidden');
         }
 
+        // UPDATED PART - Added try...catch for error handling
         form.addEventListener('submit', async (e) => {
             e.preventDefault();
+            
+            if (!user) {
+                alert("You are not logged in. Please refresh the page.");
+                return;
+            }
+
             const id = document.getElementById('transaction-id').value;
             const transactionData = {
                 uid: user.uid,
@@ -528,15 +532,20 @@
                 type: document.getElementById('type').value,
                 date: document.getElementById('date').value,
             };
-
-            if (id) {
-                await db.collection('transactions').doc(id).update(transactionData);
-            } else {
-                await db.collection('transactions').add(transactionData);
-            }
             
-            closeModal();
-            fetchTransactions();
+            try {
+                if (id) {
+                    await db.collection('transactions').doc(id).update(transactionData);
+                } else {
+                    await db.collection('transactions').add(transactionData);
+                }
+                
+                closeModal();
+                fetchTransactions();
+            } catch (error) {
+                console.error("Error saving transaction: ", error);
+                alert("Could not save transaction: " + error.message);
+            }
         });
 
         document.getElementById('cancel-btn').addEventListener('click', closeModal);
