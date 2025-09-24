@@ -1,0 +1,566 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Budget Dashboard</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        /* --- Basic Setup & Variables --- */
+        :root {
+            --bg-color: #f8f9fa;
+            --sidebar-bg: #ffffff;
+            --card-bg: #ffffff;
+            --primary-text: #212529;
+            --secondary-text: #6c757d;
+            --accent-color: #0d6efd;
+            --accent-color-light: #e7f1ff;
+            --income-color: #198754;
+            --expense-color: #dc3545;
+            --border-color: #dee2e6;
+            --shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+        }
+        body {
+            margin: 0;
+            background-color: var(--bg-color);
+            color: var(--primary-text);
+            display: flex;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        /* --- Main Layout --- */
+        .sidebar {
+            width: 240px;
+            background-color: var(--sidebar-bg);
+            padding: 24px;
+            border-right: 1px solid var(--border-color);
+            display: flex;
+            flex-direction: column;
+        }
+        .main-content {
+            flex-grow: 1;
+            padding: 24px;
+            overflow-y: auto;
+        }
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 24px;
+        }
+        .header h1 {
+            margin: 0;
+            font-size: 28px;
+        }
+
+        /* --- Components --- */
+        .summary-cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 24px;
+        }
+        .card {
+            background-color: var(--card-bg);
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: var(--shadow);
+        }
+        .card h3 {
+            margin: 0 0 8px 0;
+            font-size: 16px;
+            color: var(--secondary-text);
+        }
+        .card .amount {
+            font-size: 28px;
+            font-weight: 600;
+        }
+        .card .amount.positive { color: var(--income-color); }
+        .card .amount.negative { color: var(--expense-color); }
+
+        /* --- Calendar --- */
+        .calendar-container {
+            background-color: var(--card-bg);
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: var(--shadow);
+            margin-bottom: 24px;
+        }
+        .calendar-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        .calendar-header h2 { margin: 0; }
+        .calendar-grid {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 5px;
+        }
+        .calendar-day-name {
+            font-weight: 600;
+            text-align: center;
+            color: var(--secondary-text);
+            padding-bottom: 10px;
+        }
+        .calendar-day {
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            min-height: 120px;
+            padding: 8px;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        .calendar-day:hover { background-color: var(--bg-color); }
+        .calendar-day.other-month { background-color: #fbfbfb; color: #ccc; }
+        .day-number { font-weight: 600; }
+        .transaction-pill {
+            font-size: 12px;
+            padding: 4px 8px;
+            border-radius: 12px;
+            margin-top: 4px;
+            color: white;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .transaction-pill.income { background-color: var(--income-color); }
+        .transaction-pill.expense { background-color: var(--expense-color); }
+
+        /* --- Chart --- */
+        .chart-container {
+            background-color: var(--card-bg);
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: var(--shadow);
+        }
+        
+        /* --- Modal --- */
+        .modal-overlay {
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            background-color: rgba(0,0,0,0.5);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+        .modal-content {
+            background-color: white;
+            padding: 30px;
+            border-radius: 12px;
+            width: 90%;
+            max-width: 400px;
+        }
+        .modal-content h2 { margin-top: 0; }
+        .form-group { margin-bottom: 15px; }
+        .form-group label { display: block; margin-bottom: 5px; font-weight: 600; }
+        .form-group input, .form-group select {
+            width: 100%;
+            padding: 10px;
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+            box-sizing: border-box;
+        }
+        .modal-actions {
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+            margin-top: 20px;
+        }
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+        }
+        .btn-primary { background-color: var(--accent-color); color: white; }
+        .btn-secondary { background-color: var(--border-color); color: var(--primary-text); }
+        .btn-danger { background-color: var(--expense-color); color: white; }
+
+        /* --- Auth Screen --- */
+        .auth-container {
+            width: 100%;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        .auth-box {
+            width: 320px;
+            padding: 40px;
+            text-align: center;
+        }
+
+        /* --- General & Helpers --- */
+        .hidden { display: none !important; }
+        #user-email { color: var(--secondary-text); word-break: break-all; }
+        #logout-btn { margin-top: auto; }
+    </style>
+</head>
+<body>
+
+    <div id="app-container" class="hidden" style="display: flex; width: 100%;">
+        <nav class="sidebar">
+            <h2>Dashboard</h2>
+            <p id="user-email"></p>
+            <button id="logout-btn" class="btn btn-secondary">Logout</button>
+        </nav>
+
+        <main class="main-content">
+            <header class="header">
+                <h1>Dashboard</h1>
+            </header>
+
+            <section class="summary-cards">
+                <div class="card">
+                    <h3>Starting Balance</h3>
+                    <div class="amount" id="starting-balance">€0.00</div>
+                </div>
+                <div class="card">
+                    <h3>Monthly Net Flow</h3>
+                    <div class="amount" id="net-flow">€0.00</div>
+                </div>
+                <div class="card">
+                    <h3>Predicted End Balance</h3>
+                    <div class="amount" id="end-balance">€0.00</div>
+                </div>
+            </section>
+
+            <section class="calendar-container">
+                <div class="calendar-header">
+                    <button id="prev-month-btn" class="btn btn-secondary">&lt; Prev</button>
+                    <h2 id="month-year-label">September 2025</h2>
+                    <button id="next-month-btn" class="btn btn-secondary">Next &gt;</button>
+                </div>
+                <div class="calendar-grid" id="day-names"></div>
+                <div class="calendar-grid" id="calendar-grid"></div>
+            </section>
+            
+            <section class="chart-container">
+                <h3>Predicted Daily Balance</h3>
+                <canvas id="balance-chart"></canvas>
+            </section>
+        </main>
+    </div>
+
+    <div id="auth-container">
+        <div class="auth-box card">
+            <h2>Login</h2>
+            <p>Please log in to manage your budget.</p>
+            <div class="form-group">
+                <input type="email" id="email-input" placeholder="Email">
+            </div>
+            <div class="form-group">
+                <input type="password" id="password-input" placeholder="Password">
+            </div>
+            <div class="modal-actions" style="justify-content: center;">
+                 <button id="login-btn" class="btn btn-primary">Login</button>
+                 <button id="signup-btn" class="btn btn-secondary">Sign Up</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="transaction-modal" class="modal-overlay hidden">
+        <div class="modal-content">
+            <h2 id="modal-title">Add Transaction</h2>
+            <form id="transaction-form">
+                <input type="hidden" id="transaction-id">
+                <div class="form-group">
+                    <label for="title">Title</label>
+                    <input type="text" id="title" required>
+                </div>
+                <div class="form-group">
+                    <label for="amount">Amount (€)</label>
+                    <input type="number" step="0.01" id="amount" required>
+                </div>
+                <div class="form-group">
+                    <label for="type">Type</label>
+                    <select id="type">
+                        <option value="expense">Expense</option>
+                        <option value="income">Income</option>
+                    </select>
+                </div>
+                 <div class="form-group">
+                    <label for="date">Date</label>
+                    <input type="date" id="date" required>
+                </div>
+                <div class="modal-actions">
+                    <button id="delete-btn" type="button" class="btn btn-danger hidden" style="margin-right: auto;">Delete</button>
+                    <button id="cancel-btn" type="button" class="btn btn-secondary">Cancel</button>
+                    <button id="save-btn" type="submit" class="btn btn-primary">Save</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore-compat.js"></script>
+
+    <script>
+        // --- 1. FIREBASE CONFIGURATION ---
+        // PASTE YOUR FIREBASE CONFIGURATION OBJECT HERE
+        const firebaseConfig = {
+          apiKey: "AIzaSyDzeI6mMuICNJdO_G2F7fiGFlQhyo8RWM8",
+          authDomain: "budgeting-b3974.firebaseapp.com",      
+          projectId: "budgeting-b3974",
+          storageBucket: "budgeting-b3974.firebasestorage.app",    
+          messagingSenderId: "462817466291",
+          appId: "1:462817466291:web:13260b80355f9d0b559dc6"
+        };
+
+        // Initialize Firebase
+        firebase.initializeApp(firebaseConfig);
+        const auth = firebase.auth();
+        const db = firebase.firestore();
+
+        // --- 2. GLOBAL STATE & DOM ELEMENTS ---
+        let currentDate = new Date();
+        let transactions = [];
+        let user = null;
+        let balanceChart = null;
+
+        // Get DOM Elements
+        const calendarGrid = document.getElementById('calendar-grid');
+        const monthYearLabel = document.getElementById('month-year-label');
+        const modal = document.getElementById('transaction-modal');
+        const form = document.getElementById('transaction-form');
+
+        // --- 3. AUTHENTICATION ---
+        auth.onAuthStateChanged(firebaseUser => {
+            if (firebaseUser) {
+                user = firebaseUser;
+                document.getElementById('app-container').classList.remove('hidden');
+                document.getElementById('auth-container').classList.add('hidden');
+                document.getElementById('user-email').textContent = user.email;
+                renderApp();
+            } else {
+                user = null;
+                document.getElementById('app-container').classList.add('hidden');
+                document.getElementById('auth-container').classList.remove('hidden');
+            }
+        });
+        
+        document.getElementById('login-btn').addEventListener('click', () => {
+            const email = document.getElementById('email-input').value;
+            const password = document.getElementById('password-input').value;
+            auth.signInWithEmailAndPassword(email, password).catch(err => alert(err.message));
+        });
+
+        document.getElementById('signup-btn').addEventListener('click', () => {
+            const email = document.getElementById('email-input').value;
+            const password = document.getElementById('password-input').value;
+            auth.createUserWithEmailAndPassword(email, password).catch(err => alert(err.message));
+        });
+
+        document.getElementById('logout-btn').addEventListener('click', () => {
+            auth.signOut();
+        });
+
+
+        // --- 4. CORE APP LOGIC ---
+        function renderApp() {
+            renderCalendar();
+            fetchTransactions();
+        }
+
+        function renderCalendar() {
+            calendarGrid.innerHTML = '';
+            monthYearLabel.textContent = currentDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+            
+            const month = currentDate.getMonth();
+            const year = currentDate.getFullYear();
+            
+            const firstDayOfMonth = new Date(year, month, 1).getDay();
+            const daysInMonth = new Date(year, month + 1, 0).getDate();
+
+            // Create day name headers
+            const dayNamesContainer = document.getElementById('day-names');
+            if(dayNamesContainer.children.length === 0) {
+              const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+              dayNames.forEach(name => {
+                const dayNameEl = document.createElement('div');
+                dayNameEl.className = 'calendar-day-name';
+                dayNameEl.textContent = name;
+                dayNamesContainer.appendChild(dayNameEl);
+              });
+            }
+
+            for (let i = 0; i < firstDayOfMonth; i++) {
+                const emptyCell = document.createElement('div');
+                emptyCell.className = 'calendar-day other-month';
+                calendarGrid.appendChild(emptyCell);
+            }
+
+            for (let i = 1; i <= daysInMonth; i++) {
+                const dayCell = document.createElement('div');
+                dayCell.className = 'calendar-day';
+                dayCell.innerHTML = `<div class="day-number">${i}</div>`;
+                dayCell.dataset.date = new Date(year, month, i).toISOString().split('T')[0];
+                dayCell.addEventListener('click', () => openModal(dayCell.dataset.date));
+                calendarGrid.appendChild(dayCell);
+            }
+        }
+        
+        async function fetchTransactions() {
+            if (!user) return;
+
+            const startOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
+            const endOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0);
+
+            const snapshot = await db.collection('transactions')
+                .where('uid', '==', user.uid)
+                .where('date', '>=', startOfMonth.toISOString().split('T')[0])
+                .where('date', '<=', endOfMonth.toISOString().split('T')[0])
+                .get();
+
+            transactions = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+            renderTransactionsOnCalendar();
+            updateSummaryAndChart();
+        }
+
+        function renderTransactionsOnCalendar() {
+            // Clear existing pills
+            document.querySelectorAll('.transaction-pill').forEach(pill => pill.remove());
+            
+            transactions.forEach(tx => {
+                const dayCell = document.querySelector(`.calendar-day[data-date="${tx.date}"]`);
+                if (dayCell) {
+                    const pill = document.createElement('div');
+                    pill.className = `transaction-pill ${tx.type}`;
+                    pill.textContent = tx.title;
+                    pill.addEventListener('click', (e) => {
+                        e.stopPropagation(); // Prevent opening a new modal
+                        openModal(tx.date, tx);
+                    });
+                    dayCell.appendChild(pill);
+                }
+            });
+        }
+        
+        function updateSummaryAndChart() {
+            let totalIncome = 0;
+            let totalExpense = 0;
+            transactions.forEach(tx => {
+                if (tx.type === 'income') totalIncome += tx.amount;
+                else totalExpense += tx.amount;
+            });
+            
+            const netFlow = totalIncome - totalExpense;
+            document.getElementById('net-flow').textContent = `€${netFlow.toFixed(2)}`;
+            document.getElementById('net-flow').className = `amount ${netFlow >= 0 ? 'positive' : 'negative'}`;
+
+            // Chart logic
+            const daysInMonth = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0).getDate();
+            const labels = Array.from({ length: daysInMonth }, (_, i) => i + 1);
+            const dailyBalances = [];
+            let currentBalance = 0; // Replace with a starting balance if needed
+
+            for (let i = 1; i <= daysInMonth; i++) {
+                const dateStr = new Date(currentDate.getFullYear(), currentDate.getMonth(), i).toISOString().split('T')[0];
+                const todaysTransactions = transactions.filter(tx => tx.date === dateStr);
+                todaysTransactions.forEach(tx => {
+                    currentBalance += tx.type === 'income' ? tx.amount : -tx.amount;
+                });
+                dailyBalances.push(currentBalance);
+            }
+            
+            document.getElementById('end-balance').textContent = `€${currentBalance.toFixed(2)}`;
+            document.getElementById('end-balance').className = `amount ${currentBalance >= 0 ? 'positive' : 'negative'}`;
+
+            const ctx = document.getElementById('balance-chart').getContext('2d');
+            if (balanceChart) {
+                balanceChart.destroy();
+            }
+            balanceChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Predicted Balance',
+                        data: dailyBalances,
+                        borderColor: 'var(--accent-color)',
+                        tension: 0.1
+                    }]
+                }
+            });
+        }
+
+        // --- 5. MODAL & FORM HANDLING ---
+        function openModal(date, transaction = null) {
+            form.reset();
+            modal.classList.remove('hidden');
+            document.getElementById('date').value = date;
+            
+            const deleteBtn = document.getElementById('delete-btn');
+            if (transaction) {
+                document.getElementById('modal-title').textContent = 'Edit Transaction';
+                document.getElementById('transaction-id').value = transaction.id;
+                document.getElementById('title').value = transaction.title;
+                document.getElementById('amount').value = transaction.amount;
+                document.getElementById('type').value = transaction.type;
+                document.getElementById('date').value = transaction.date;
+                deleteBtn.classList.remove('hidden');
+            } else {
+                document.getElementById('modal-title').textContent = 'Add Transaction';
+                document.getElementById('transaction-id').value = '';
+                deleteBtn.classList.add('hidden');
+            }
+        }
+
+        function closeModal() {
+            modal.classList.add('hidden');
+        }
+
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const id = document.getElementById('transaction-id').value;
+            const transactionData = {
+                uid: user.uid,
+                title: document.getElementById('title').value,
+                amount: parseFloat(document.getElementById('amount').value),
+                type: document.getElementById('type').value,
+                date: document.getElementById('date').value,
+            };
+
+            if (id) {
+                await db.collection('transactions').doc(id).update(transactionData);
+            } else {
+                await db.collection('transactions').add(transactionData);
+            }
+            
+            closeModal();
+            fetchTransactions();
+        });
+
+        document.getElementById('cancel-btn').addEventListener('click', closeModal);
+        document.getElementById('delete-btn').addEventListener('click', async () => {
+            if (confirm('Are you sure you want to delete this transaction?')) {
+                const id = document.getElementById('transaction-id').value;
+                await db.collection('transactions').doc(id).delete();
+                closeModal();
+                fetchTransactions();
+            }
+        });
+
+
+        // --- 6. EVENT LISTENERS ---
+        document.getElementById('prev-month-btn').addEventListener('click', () => {
+            currentDate.setMonth(currentDate.getMonth() - 1);
+            renderApp();
+        });
+
+        document.getElementById('next-month-btn').addEventListener('click', () => {
+            currentDate.setMonth(currentDate.getMonth() + 1);
+            renderApp();
+        });
+        
+    </script>
+</body>
+</html>
