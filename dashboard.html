@@ -1,0 +1,791 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>My Budget Dashboard</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<style>
+:root{
+  --bg: #f5f6fa;
+  --card:#ffffff;
+  --muted:#6c757d;
+  --text:#222222;
+  --accent:#00b894;
+  --accent-strong:#00946f;
+  --danger:#e74c3c;
+  --warn:#ff9f43;
+  --income:#1abc9c;
+  --expense:#ff6b6b;
+  --border: #e9eef2;
+  --shadow: 0 8px 20px rgba(16,24,40,0.06);
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;}
+.app{display:flex;min-height:100vh;}
+.sidebar{
+  width:260px;background:linear-gradient(180deg,#ffffff,#fbfeff);border-right:1px solid var(--border);padding:24px;
+  display:flex;flex-direction:column;gap:12px;
+}
+.brand{font-weight:700;color:var(--accent);font-size:18px}
+.user-email{color:var(--muted);font-size:13px;word-break:break-all}
+.sidebar .nav-btn{background:none;border:1px solid transparent;padding:8px 10px;border-radius:8px;text-align:left;cursor:pointer;color:var(--text)}
+.sidebar .nav-btn:hover{background:rgba(0,0,0,0.03)}
+.sidebar .actions{margin-top:auto;display:flex;flex-direction:column;gap:8px}
+.main{flex:1;padding:28px;overflow:auto}
+.header{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.h-title{font-size:22px;font-weight:700}
+.top-stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px;margin-top:18px}
+.card{background:var(--card);border-radius:14px;padding:16px;box-shadow:var(--shadow);border:1px solid var(--border)}
+.card h3{margin:0;font-size:13px;color:var(--muted)}
+.amount{margin-top:10px;font-weight:700;font-size:20px}
+.amount.positive{color:var(--income)}.amount.negative{color:var(--expense)}
+.controls{display:flex;gap:8px;align-items:center}
+.btn{padding:8px 12px;border-radius:10px;border:none;cursor:pointer;font-weight:600}
+.btn-primary{background:var(--accent);color:white;box-shadow:0 6px 18px rgba(0,184,148,0.12)}
+.btn-ghost{background:transparent;border:1px solid var(--border);color:var(--text)}
+.small{padding:6px 8px;font-size:13px;border-radius:8px}
+.calendar{margin-top:20px;display:grid;grid-template-columns:1fr 360px;gap:16px}
+.calendar-left{display:flex;flex-direction:column;gap:12px}
+.calendar-header{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.month-label{font-weight:700}
+.calendar-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:6px}
+.calendar-day{background:linear-gradient(180deg,#fff,#fbffff);border:1px solid var(--border);border-radius:10px;padding:8px;min-height:80px;position:relative;cursor:pointer;overflow:hidden}
+.calendar-day .day-number{font-size:12px;font-weight:700;color:var(--muted)}
+.transaction-pill{display:inline-block;padding:4px 8px;border-radius:999px;font-size:12px;color:white;margin-top:6px;max-width:100%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.transaction-pill.income{background:var(--income)}
+.transaction-pill.expense{background:var(--expense)}
+.right-column{display:flex;flex-direction:column;gap:12px}
+.chart-card{height:260px}
+.progress-bar{height:12px;background:#eef3f5;border-radius:999px;overflow:hidden}
+.progress-fill{height:100%;width:0%;transition:width 0.6s ease}
+.progress-good{background:#10b981}
+.progress-warn{background:var(--warn)}
+.progress-bad{background:var(--danger)}
+.modal-overlay{position:fixed;inset:0;background:rgba(10,10,12,0.5);display:flex;align-items:center;justify-content:center;z-index:9999}
+.modal{background:var(--card);border-radius:12px;padding:18px;min-width:320px;max-width:520px;box-shadow:var(--shadow)}
+.form-group{margin-bottom:12px}
+label{display:block;font-size:13px;color:var(--muted);margin-bottom:6px}
+input[type="text"],input[type="email"],input[type="password"],input[type="number"],input[type="date"],select{width:100%;padding:10px;border-radius:8px;border:1px solid var(--border);background:transparent;font-size:14px}
+.hidden{display:none !important}
+.flex{display:flex;gap:8px;align-items:center}
+.budgets-list{display:flex;flex-direction:column;gap:10px}
+.goal-item{display:flex;flex-direction:column;gap:6px}
+.footer-note{font-size:12px;color:var(--muted);margin-top:6px}
+@media(max-width:900px){
+  .app{flex-direction:column}
+  .sidebar{width:100%;flex-direction:row;align-items:center;gap:12px;padding:12px}
+  .calendar{grid-template-columns:1fr;gap:12px}
+  .main{padding:16px}
+}
+</style>
+</head>
+<body>
+<!-- Single-file Budget Dashboard with Recurring Payments, Settings & Savings Goals -->
+<!-- Firestore config is kept unchanged per your request -->
+<div id="app" class="app hidden">
+  <aside class="sidebar">
+    <div class="brand">Budget Dashboard</div>
+    <div id="user-email" class="user-email"></div>
+    <button id="settings-btn" class="nav-btn">⚙ Settings</button>
+    <button id="manage-budgets-btn" class="nav-btn">📊 Manage Budgets</button>
+    <button id="logout-btn" class="nav-btn" style="margin-top:12px;background:transparent;border-radius:10px;padding:8px 10px;border:1px solid var(--border)">Logout</button>
+    <div class="actions">
+      <div class="footer-note">Deployed as single file — Firebase-backed.</div>
+    </div>
+  </aside>
+
+  <main class="main">
+    <header class="header">
+      <div>
+        <div class="h-title">Dashboard</div>
+        <div class="footer-note">Clean, predictive view of your monthly cashflow</div>
+      </div>
+      <div class="controls">
+        <button id="add-transaction-btn" class="btn btn-primary">+ New Transaction</button>
+        <button id="add-goal-btn" class="btn btn-ghost small">+ Goal</button>
+      </div>
+    </header>
+
+    <section class="top-stats">
+      <div class="card">
+        <h3>Starting Balance</h3>
+        <div class="amount" id="starting-balance">€0.00</div>
+      </div>
+      <div class="card">
+        <h3>Monthly Net Flow</h3>
+        <div class="amount" id="net-flow">€0.00</div>
+      </div>
+      <div class="card">
+        <h3>Predicted End Balance</h3>
+        <div class="amount" id="end-balance">€0.00</div>
+      </div>
+    </section>
+
+    <div class="calendar">
+      <div class="calendar-left">
+        <div class="card calendar-card">
+          <div class="calendar-header">
+            <div class="flex">
+              <button id="prev-month-btn" class="btn btn-ghost small">&lt;</button>
+              <div class="month-label" id="month-year-label"></div>
+              <button id="next-month-btn" class="btn btn-ghost small">&gt;</button>
+            </div>
+            <div class="flex">
+              <select id="view-filter" class="small" style="padding:6px 10px;border-radius:8px">
+                <option value="all">All</option>
+                <option value="income">Income</option>
+                <option value="expense">Expense</option>
+                <option value="recurring">Recurring</option>
+              </select>
+              <button id="refresh-btn" class="btn btn-ghost small">Refresh</button>
+            </div>
+          </div>
+          <div class="calendar-grid" id="day-names"></div>
+          <div class="calendar-grid" id="calendar-grid"></div>
+        </div>
+
+        <div class="card" style="margin-top:12px">
+          <div style="display:flex;justify-content:space-between;align-items:center">
+            <h3 style="margin:0">Monthly Budgets</h3>
+            <button id="open-budgets-btn" class="btn small">Manage</button>
+          </div>
+          <div id="budgets-container" style="margin-top:10px">No budgets set for this month.</div>
+        </div>
+
+      </div>
+
+      <aside class="right-column">
+        <div class="card chart-card">
+          <h3>Predicted Daily Balance</h3>
+          <canvas id="balance-chart" style="width:100%;height:180px;margin-top:12px"></canvas>
+        </div>
+
+        <div class="card">
+          <h3>Savings Goals</h3>
+          <div id="savings-goals-container" style="margin-top:10px">No savings goals set.</div>
+          <div style="margin-top:10px;display:flex;justify-content:flex-end">
+            <button id="view-goals-btn" class="btn small">View Goals</button>
+          </div>
+        </div>
+
+        <div class="card">
+          <h3>Quick Insights</h3>
+          <div id="insights" style="margin-top:10px;color:var(--muted)">No insights yet.</div>
+        </div>
+      </aside>
+    </div>
+  </main>
+</div>
+
+<!-- Auth -->
+<div id="auth-container" class="auth-box" style="display:flex;align-items:center;justify-content:center;height:100vh">
+  <div class="card" style="max-width:360px;width:100%;text-align:center">
+    <h2>Login</h2>
+    <div class="form-group"><input id="email-input" placeholder="Email" type="email"></div>
+    <div class="form-group"><input id="password-input" placeholder="Password" type="password"></div>
+    <div style="display:flex;gap:8px;justify-content:center">
+      <button id="login-btn" class="btn btn-primary">Login</button>
+      <button id="signup-btn" class="btn btn-ghost">Sign Up</button>
+    </div>
+    <div style="margin-top:10px;color:var(--muted);font-size:13px">Use a real email/password to persist data</div>
+  </div>
+</div>
+
+<!-- Transaction Modal -->
+<div id="transaction-modal" class="modal-overlay hidden">
+  <div class="modal">
+    <h3 id="modal-title">Add Transaction</h3>
+    <form id="transaction-form">
+      <input type="hidden" id="transaction-id">
+      <div class="form-group"><label>Title</label><input id="title" required type="text"></div>
+      <div class="form-group"><label>Amount (€)</label><input id="amount" required type="number" step="0.01"></div>
+      <div class="form-group"><label>Category</label><input id="category" type="text" placeholder="Groceries, Rent..."></div>
+      <div class="form-group"><label>Type</label><select id="type"><option value="expense">Expense</option><option value="income">Income</option></select></div>
+      <div class="form-group"><label>Date</label><input id="date" required type="date"></div>
+
+      <!-- Recurrence -->
+      <div class="form-group">
+        <label><input type="checkbox" id="is-recurring"> Make recurring</label>
+      </div>
+      <div class="form-group hidden" id="recurrence-options">
+        <label>Frequency</label>
+        <select id="recurrence-frequency">
+          <option value="monthly">Monthly</option>
+          <option value="weekly">Weekly</option>
+          <option value="daily">Daily</option>
+        </select>
+      </div>
+
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-top:10px">
+        <button id="delete-btn" type="button" class="btn btn-ghost hidden">Delete</button>
+        <div style="display:flex;gap:8px">
+          <button id="cancel-btn" type="button" class="btn btn-ghost">Cancel</button>
+          <button id="save-btn" type="submit" class="btn btn-primary">Save</button>
+        </div>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Budgets Modal -->
+<div id="budgets-modal" class="modal-overlay hidden">
+  <div class="modal">
+    <h3>Manage Budgets</h3>
+    <div id="budgets-list" style="max-height:280px;overflow:auto;margin-bottom:10px"></div>
+    <hr>
+    <h4>Add Budget</h4>
+    <form id="budget-form">
+      <div class="form-group"><label>Category</label><input id="budget-category" required type="text"></div>
+      <div class="form-group"><label>Amount (€)</label><input id="budget-amount" required type="number" step="0.01"></div>
+      <div style="display:flex;justify-content:flex-end;gap:8px">
+        <button id="cancel-budget-btn" type="button" class="btn btn-ghost">Close</button>
+        <button id="save-budget-btn" type="submit" class="btn btn-primary">Add Budget</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Settings Modal -->
+<div id="settings-modal" class="modal-overlay hidden">
+  <div class="modal">
+    <h3>Settings</h3>
+    <form id="settings-form">
+      <div class="form-group"><label>Currency Symbol</label><input id="currency-symbol" type="text" value="€"></div>
+      <div class="form-group"><label>Monthly Savings Target (€)</label><input id="monthly-savings-target" type="number" step="0.01"></div>
+      <div class="form-group"><label><input id="enable-ai" type="checkbox"> Enable Predictions & Insights</label></div>
+      <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:8px">
+        <button id="cancel-settings-btn" class="btn btn-ghost" type="button">Close</button>
+        <button type="submit" class="btn btn-primary">Save</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Goal Modal -->
+<div id="goal-modal" class="modal-overlay hidden">
+  <div class="modal">
+    <h3>Add Savings Goal</h3>
+    <form id="goal-form">
+      <div class="form-group"><label>Goal Name</label><input id="goal-name" required type="text"></div>
+      <div class="form-group"><label>Target Amount (€)</label><input id="goal-amount" required type="number" step="0.01"></div>
+      <div style="display:flex;justify-content:flex-end;gap:8px">
+        <button id="cancel-goal-btn" class="btn btn-ghost" type="button">Close</button>
+        <button type="submit" class="btn btn-primary">Add Goal</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Include Firebase (kept as requested) -->
+<script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore-compat.js"></script>
+
+<script>
+/* FIREBASE CONFIG - unchanged (kept exactly as provided) */
+const firebaseConfig = {apiKey: "AIzaSyDzeI6mMuICNJdO_G2F7fiGFlQhyo8RWM8",
+  authDomain: "budgeting-b3974.firebaseapp.com",
+  projectId: "budgeting-b3974",
+  storageBucket: "budgeting-b3974.firebasestorage.app",
+  messagingSenderId: "462817466291",
+  appId: "1:462817466291:web:13260b80355f9d0b559dc6"};
+firebase.initializeApp(firebaseConfig);
+const auth = firebase.auth();
+const db = firebase.firestore();
+
+/* GLOBAL STATE */
+let user = null;
+let transactions = [];
+let budgets = [];
+let goals = [];
+let settings = { currency: '€', savingsTarget: 0, enableAI: true };
+let balanceChart = null;
+let currentDate = new Date();
+
+/* DOM */
+const appEl = document.getElementById('app');
+const authContainer = document.getElementById('auth-container');
+const userEmailEl = document.getElementById('user-email');
+const monthYearLabel = document.getElementById('month-year-label');
+const calendarGrid = document.getElementById('calendar-grid');
+const dayNamesContainer = document.getElementById('day-names');
+const startingBalanceEl = document.getElementById('starting-balance');
+const netFlowEl = document.getElementById('net-flow');
+const endBalanceEl = document.getElementById('end-balance');
+const budgetsContainer = document.getElementById('budgets-container');
+const savingsContainer = document.getElementById('savings-goals-container');
+const insightsEl = document.getElementById('insights');
+
+/* AUTH */
+auth.onAuthStateChanged(async (fbUser) => {
+  if (fbUser) {
+    user = fbUser;
+    userEmailEl.textContent = user.email;
+    authContainer.style.display = 'none';
+    appEl.classList.remove('hidden');
+    await loadSettings();
+    await renderApp();
+  } else {
+    user = null;
+    appEl.classList.add('hidden');
+    authContainer.style.display = 'flex';
+  }
+});
+
+document.getElementById('login-btn').addEventListener('click', () => {
+  const email = document.getElementById('email-input').value;
+  const pass = document.getElementById('password-input').value;
+  auth.signInWithEmailAndPassword(email, pass).catch(e => alert(e.message));
+});
+document.getElementById('signup-btn').addEventListener('click', () => {
+  const email = document.getElementById('email-input').value;
+  const pass = document.getElementById('password-input').value;
+  auth.createUserWithEmailAndPassword(email, pass).catch(e => alert(e.message));
+});
+document.getElementById('logout-btn').addEventListener('click', () => auth.signOut());
+
+/* MODAL CONTROLS */
+function openModal(id){ document.getElementById(id).classList.remove('hidden'); }
+function closeModal(id){ document.getElementById(id).classList.add('hidden'); }
+
+/* Recurrence UI toggle */
+document.getElementById('is-recurring').addEventListener('change', (e)=> {
+  document.getElementById('recurrence-options').classList.toggle('hidden', !e.target.checked);
+});
+
+/* Open forms */
+document.getElementById('add-transaction-btn').addEventListener('click', () => {
+  document.getElementById('transaction-form').reset();
+  document.getElementById('transaction-id').value = '';
+  document.getElementById('delete-btn').classList.add('hidden');
+  // set default date to today or current calendar month first day if viewing other month
+  const iso = new Date(currentDate.getFullYear(), currentDate.getMonth(), Math.min(new Date().getDate(),28)).toISOString().split('T')[0];
+  document.getElementById('date').value = iso;
+  openModal('transaction-modal');
+});
+document.getElementById('add-goal-btn').addEventListener('click', ()=> openModal('goal-modal'));
+document.getElementById('view-goals-btn').addEventListener('click', ()=> openModal('budgets-modal'));
+
+/* Settings open */
+document.getElementById('settings-btn').addEventListener('click', async () => {
+  await loadSettings();
+  document.getElementById('currency-symbol').value = settings.currency || '€';
+  document.getElementById('monthly-savings-target').value = settings.savingsTarget || '';
+  document.getElementById('enable-ai').checked = !!settings.enableAI;
+  openModal('settings-modal');
+});
+document.getElementById('cancel-settings-btn').addEventListener('click', ()=> closeModal('settings-modal'));
+
+/* SAVE SETTINGS */
+document.getElementById('settings-form').addEventListener('submit', async (e)=> {
+  e.preventDefault();
+  settings.currency = document.getElementById('currency-symbol').value || '€';
+  settings.savingsTarget = parseFloat(document.getElementById('monthly-savings-target').value) || 0;
+  settings.enableAI = document.getElementById('enable-ai').checked;
+  if (!user) return;
+  await db.collection('settings').doc(user.uid).set({ uid: user.uid, currency: settings.currency, savingsTarget: settings.savingsTarget, enableAI: settings.enableAI });
+  closeModal('settings-modal');
+  renderApp();
+});
+
+/* FETCH SETTINGS */
+async function loadSettings(){
+  if(!user) return;
+  const doc = await db.collection('settings').doc(user.uid).get();
+  if(doc.exists) settings = { ...settings, ...doc.data() };
+}
+
+/* FETCH & RENDER APP */
+async function renderApp(){
+  renderCalendar();
+  await fetchData();
+}
+
+/* FETCH DATA */
+async function fetchData(){
+  if(!user) return;
+  const year = currentDate.getFullYear(), month = currentDate.getMonth();
+  // starting balance
+  const startingBalance = await getStartingBalance(year, month);
+  startingBalanceEl.textContent = `${settings.currency}${startingBalance.toFixed(2)}`;
+
+  const startOfMonth = new Date(year, month, 1).toISOString().split('T')[0];
+  const endOfMonth = new Date(year, month + 1, 0).toISOString().split('T')[0];
+
+  const [txSnap, budSnap, goalsSnap] = await Promise.all([
+    db.collection('transactions').where('uid','==',user.uid).get(),
+    db.collection('budgets').where('uid','==',user.uid).where('year','==',year).where('month','==',month).get(),
+    db.collection('savingsGoals').where('uid','==',user.uid).get()
+  ]);
+
+  // Load raw transactions (we'll filter/generate virtual recurring ones below)
+  const rawTx = txSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+  budgets = budSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+  goals = goalsSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+
+  // Build transactions array: include only transactions up to end of this month, and also add generated recurring occurrences
+  transactions = [];
+  // copy raw and only include those relevant for prediction (we'll keep all for editing)
+  rawTx.forEach(t => {
+    // ensure amount is number
+    t.amount = Number(t.amount);
+    // include all historical transactions (useful for starting balance calc)
+    transactions.push(t);
+  });
+
+  // Generate virtual recurring transactions for current month range
+  const monthStart = new Date(year, month, 1);
+  const monthEnd = new Date(year, month + 1, 0);
+  rawTx.forEach(t => {
+    if (t.isRecurring) {
+      // base date is t.date; generate occurrences within current month
+      try {
+        let occ = new Date(t.date);
+        // normalize to start before monthEnd
+        while (occ <= monthEnd) {
+          if (occ >= monthStart && occ <= monthEnd) {
+            // add virtual occurrence (don't duplicate if a real tx exists same id+date)
+            const dateISO = occ.toISOString().split('T')[0];
+            // avoid duplicates where user already created a transaction on that date with same title & amount
+            const duplicate = rawTx.some(rt => rt.title === t.title && rt.amount === t.amount && rt.date === dateISO && rt.uid === t.uid);
+            if (!duplicate) {
+              transactions.push({ ...t, date: dateISO, isVirtual: true, originalId: t.id });
+            }
+          }
+          if (t.recurrence === 'monthly') occ.setMonth(occ.getMonth() + 1);
+          else if (t.recurrence === 'weekly') occ.setDate(occ.getDate() + 7);
+          else if (t.recurrence === 'daily') occ.setDate(occ.getDate() + 1);
+          else break;
+        }
+      } catch (err) { /* skip malformed dates */ }
+    }
+  });
+
+  // Now filter transactions that are relevant for current month when rendering calendar/summary
+  const startISO = monthStart.toISOString().split('T')[0];
+  const endISO = monthEnd.toISOString().split('T')[0];
+  const txForMonth = transactions.filter(tx => tx.date >= startISO && tx.date <= endISO);
+
+  // update UI
+  renderTransactionsOnCalendar(txForMonth);
+  renderBudgets();
+  renderGoals(txForMonth);
+  updateSummaryAndChart(startingBalance, txForMonth);
+}
+
+/* STARTING BALANCE: check overrides or compute from history */
+async function getStartingBalance(year, month){
+  if(!user) return 0;
+  const ym = `${year}-${String(month).padStart(2,'0')}`;
+  const overrideDoc = await db.collection('monthlyOverrides').doc(`${user.uid}_${ym}`).get();
+  if(overrideDoc.exists) return Number(overrideDoc.data().startingBalance) || 0;
+  // else compute sum of all transactions up to end of previous month
+  const endPrev = new Date(year, month, 0).toISOString().split('T')[0];
+  const snap = await db.collection('transactions').where('uid','==',user.uid).where('date','<=',endPrev).get();
+  let bal = 0;
+  snap.docs.forEach(d => {
+    const tx = d.data();
+    const amt = Number(tx.amount) || 0;
+    bal += tx.type === 'income' ? amt : -amt;
+  });
+  return bal;
+}
+
+/* RENDER BUDGETS */
+function renderBudgets(){
+  if(!budgets || budgets.length===0){ budgetsContainer.innerHTML = '<p>No budgets set for this month.</p>'; return; }
+  // compute spending per category from transactions (expenses only)
+  const spending = {};
+  transactions.forEach(tx => {
+    if(tx.type === 'expense' && tx.category){
+      const cat = tx.category.toLowerCase();
+      spending[cat] = (spending[cat]||0) + Number(tx.amount || 0);
+    }
+  });
+  budgetsContainer.innerHTML = budgets.map(b => {
+    const cat = b.category.toLowerCase();
+    const spent = spending[cat] || 0;
+    const pct = Math.min((spent / b.amount) * 100, 100);
+    const cls = pct < 80 ? 'progress-good' : (pct < 100 ? 'progress-warn' : 'progress-bad');
+    return `<div style="margin-bottom:10px">
+      <div style="display:flex;justify-content:space-between;font-weight:700">${b.category}<span>${settings.currency}${spent.toFixed(2)} / ${settings.currency}${Number(b.amount).toFixed(2)}</span></div>
+      <div class="progress-bar" style="margin-top:6px"><div class="progress-fill ${cls}" style="width:${pct}%;"></div></div>
+    </div>`;
+  }).join('');
+}
+
+/* RENDER GOALS */
+function renderGoals(txForMonth){
+  if(!goals || goals.length===0){ savingsContainer.innerHTML = '<p>No savings goals set.</p>'; return; }
+  // for progress we use predicted end balance (endBalanceEl holds it)
+  const endBalText = endBalanceEl.textContent || `${settings.currency}0.00`;
+  const endBal = Number(endBalText.replace(/[^0-9\.-]/g,'')) || 0;
+  savingsContainer.innerHTML = goals.map(g => {
+    const progress = Math.min((endBal / Number(g.amount)) * 100, 100);
+    const cls = progress >= 100 ? 'progress-good' : (progress >= 60 ? 'progress-warn' : 'progress-bad');
+    return `<div class="goal-item">
+      <div style="display:flex;justify-content:space-between"><strong>${g.name}</strong><span>${settings.currency}${Number(g.amount).toFixed(2)}</span></div>
+      <div class="progress-bar"><div class="progress-fill ${cls}" style="width:${progress}%;"></div></div>
+      <div style="font-size:12px;color:var(--muted)">${progress.toFixed(1)}% of goal based on predicted end balance</div>
+    </div>`;
+  }).join('');
+}
+
+/* SUMMARY & CHART */
+function updateSummaryAndChart(startingBalance, txForMonth){
+  // calculate income and expense for the month (including virtual recurring tx)
+  let income=0, expense=0;
+  txForMonth.forEach(tx => {
+    if(tx.type === 'income') income += Number(tx.amount || 0);
+    else expense += Number(tx.amount || 0);
+  });
+  const net = income - expense;
+  netFlowEl.textContent = `${settings.currency}${net.toFixed(2)}`;
+  netFlowEl.className = `amount ${net>=0 ? 'positive' : 'negative'}`;
+
+  // daily budget burn concept: sum budgets / days
+  const daysInMonth = new Date(currentDate.getFullYear(), currentDate.getMonth()+1, 0).getDate();
+  const totalBudgets = budgets.reduce((s,b)=>s + Number(b.amount||0),0);
+  const dailyBudgetBurn = totalBudgets / daysInMonth;
+
+  // create daily predicted balances
+  const labels = Array.from({length: daysInMonth}, (_,i)=> i+1);
+  const dailyBalances = [];
+  let cur = Number(startingBalance) || 0;
+
+  for(let day=1; day<=daysInMonth; day++){
+    const dateStr = new Date(currentDate.getFullYear(), currentDate.getMonth(), day).toISOString().split('T')[0];
+    // actual net change for that day
+    let actualNet = 0;
+    txForMonth.filter(t=>t.date===dateStr).forEach(t => actualNet += (t.type==='income' ? Number(t.amount) : -Number(t.amount)));
+    // incorporate dailyBudgetBurn only if budgets exist; this models expected spending
+    cur = cur - (totalBudgets ? dailyBudgetBurn : 0) + actualNet;
+    dailyBalances.push(Number(cur.toFixed(2)));
+  }
+
+  const finalPred = dailyBalances.length ? dailyBalances[dailyBalances.length-1] : startingBalance;
+  endBalanceEl.textContent = `${settings.currency}${Number(finalPred).toFixed(2)}`;
+  endBalanceEl.className = `amount ${finalPred>=0 ? 'positive' : 'negative'}`;
+
+  // chart
+  const ctx = document.getElementById('balance-chart').getContext('2d');
+  if(balanceChart) balanceChart.destroy();
+  balanceChart = new Chart(ctx, {
+    type:'line',
+    data:{
+      labels,
+      datasets:[{
+        label:'Predicted Balance',
+        data:dailyBalances,
+        borderColor: getComputedStyle(document.documentElement).getPropertyValue('--accent') || '#00b894',
+        tension:0.15,
+        pointRadius:2,
+        borderWidth:2,
+        fill:false
+      }]
+    },
+    options:{plugins:{legend:{display:false}},scales:{y:{beginAtZero:false}}}
+  });
+
+  // insights (basic AI-ish heuristics)
+  generateInsights(finalPred, net, totalBudgets, txForMonth);
+}
+
+/* INSIGHTS / PREDICTIONS */
+function generateInsights(finalPred, net, totalBudgets, txForMonth){
+  const lines = [];
+  if(settings.enableAI){
+    if(finalPred < 0) lines.push(`Warning: Predicted end balance is negative (${settings.currency}${finalPred.toFixed(2)}). Consider reducing recurring expenses.`);
+    if(settings.savingsTarget && finalPred < settings.savingsTarget) lines.push(`You may not meet your monthly savings target (${settings.currency}${settings.savingsTarget}). Predicted: ${settings.currency}${finalPred.toFixed(2)}.`);
+    // detect likely recurring payments from transactions (simple heuristic: same title/amount occurs >=2 times monthly)
+    const candidates = {};
+    txForMonth.forEach(t => {
+      const key = `${t.title}::${t.amount}`;
+      candidates[key] = (candidates[key]||0) + 1;
+    });
+    Object.entries(candidates).forEach(([k,c]) => { if(c>=2) lines.push(`Detected probable recurring payment: ${k.split('::')[0]} (${settings.currency}${Number(k.split('::')[1]).toFixed(2)})`); });
+    // detect high spending categories
+    const spendByCat = {};
+    txForMonth.forEach(t=>{ if(t.type==='expense' && t.category){ const c=t.category.toLowerCase(); spendByCat[c]=(spendByCat[c]||0)+Number(t.amount); } });
+    const topCat = Object.entries(spendByCat).sort((a,b)=>b[1]-a[1])[0];
+    if(topCat) lines.push(`Top spending category: ${topCat[0]} (${settings.currency}${topCat[1].toFixed(2)})`);
+  } else {
+    lines.push('Predictions are disabled in settings.');
+  }
+  insightsEl.innerHTML = lines.length ? lines.map(l=>`<div style="margin-bottom:6px">${l}</div>`).join('') : '<div style="color:var(--muted)">No specific insights for this month.</div>';
+}
+
+/* RENDER CALENDAR */
+function renderCalendar(){
+  calendarGrid.innerHTML = '';
+  dayNamesContainer.innerHTML = '';
+  const month = currentDate.getMonth(), year = currentDate.getFullYear();
+  monthYearLabel.textContent = currentDate.toLocaleDateString('en-US',{month:'long',year:'numeric'});
+  ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'].forEach(d=>{
+    const el=document.createElement('div');el.style.fontSize='12px';el.style.fontWeight='700';el.style.color='var(--muted)';el.style.textAlign='center';el.style.padding='6px 0';el.textContent=d;dayNamesContainer.appendChild(el);
+  });
+  const firstDay = new Date(year,month,1).getDay();
+  const daysInMonth = new Date(year,month+1,0).getDate();
+  for(let i=0;i<firstDay;i++){
+    const cell = document.createElement('div'); cell.className='calendar-day'; cell.style.opacity='0'; calendarGrid.appendChild(cell);
+  }
+  for(let d=1; d<=daysInMonth; d++){
+    const date = new Date(year,month,d);
+    const iso = date.toISOString().split('T')[0];
+    const cell = document.createElement('div'); cell.className='calendar-day'; cell.dataset.date = iso;
+    cell.innerHTML = `<div class="day-number">${d}</div>`;
+    cell.addEventListener('click', ()=> openTransactionOnDate(iso));
+    calendarGrid.appendChild(cell);
+  }
+}
+
+/* OPEN TX MODAL FOR EXISTING OR NEW */
+function openTransactionOnDate(date, tx=null){
+  document.getElementById('transaction-form').reset();
+  document.getElementById('transaction-id').value = tx ? tx.id : '';
+  document.getElementById('title').value = tx ? tx.title : '';
+  document.getElementById('amount').value = tx ? tx.amount : '';
+  document.getElementById('category').value = tx ? tx.category : '';
+  document.getElementById('type').value = tx ? tx.type : 'expense';
+  document.getElementById('date').value = date;
+  if(tx && tx.isRecurring){ document.getElementById('is-recurring').checked = true; document.getElementById('recurrence-options').classList.remove('hidden'); document.getElementById('recurrence-frequency').value = tx.recurrence || 'monthly'; }
+  else { document.getElementById('is-recurring').checked = false; document.getElementById('recurrence-options').classList.add('hidden'); }
+  if(tx) document.getElementById('delete-btn').classList.remove('hidden'); else document.getElementById('delete-btn').classList.add('hidden');
+  openModal('transaction-modal');
+}
+
+/* RENDER TRANSACTIONS ON CALENDAR */
+function renderTransactionsOnCalendar(txForMonth){
+  // clear pills
+  document.querySelectorAll('.transaction-pill').forEach(n=>n.remove());
+  txForMonth.forEach(tx=>{
+    const el = document.querySelector(`.calendar-day[data-date="${tx.date}"]`);
+    if(!el) return;
+    const pill = document.createElement('div');
+    pill.className = `transaction-pill ${tx.type}` + (tx.isVirtual ? ' virtual' : '');
+    pill.textContent = tx.title + (tx.isVirtual ? ' •' : '');
+    pill.title = `${tx.title} ${settings.currency}${Number(tx.amount).toFixed(2)}${tx.isRecurring ? ' (recurring)' : ''}`;
+    pill.addEventListener('click', (e)=>{ e.stopPropagation(); openTransactionOnDate(tx.date, tx); });
+    el.appendChild(pill);
+  });
+}
+
+/* TRANSACTION FORM SUBMIT */
+document.getElementById('transaction-form').addEventListener('submit', async (e)=> {
+  e.preventDefault();
+  if(!user) return alert('Sign in first');
+  const id = document.getElementById('transaction-id').value;
+  const data = {
+    uid: user.uid,
+    title: document.getElementById('title').value,
+    amount: Number(document.getElementById('amount').value) || 0,
+    category: document.getElementById('category').value.trim(),
+    type: document.getElementById('type').value,
+    date: document.getElementById('date').value,
+    isRecurring: document.getElementById('is-recurring').checked,
+    recurrence: document.getElementById('is-recurring').checked ? document.getElementById('recurrence-frequency').value : null,
+    updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+  };
+  try{
+    if(id){
+      await db.collection('transactions').doc(id).update(data);
+    } else {
+      data.createdAt = firebase.firestore.FieldValue.serverTimestamp();
+      await db.collection('transactions').add(data);
+    }
+    closeModal('transaction-modal');
+    await fetchData();
+  } catch(err){ alert('Could not save transaction: ' + err.message); }
+});
+
+/* DELETE TRANSACTION */
+document.getElementById('delete-btn').addEventListener('click', async ()=>{
+  const id = document.getElementById('transaction-id').value;
+  if(!id) return;
+  if(!confirm('Delete this transaction?')) return;
+  await db.collection('transactions').doc(id).delete();
+  closeModal('transaction-modal');
+  await fetchData();
+});
+
+/* BUDGETS FORM */
+document.getElementById('open-budgets-btn').addEventListener('click', ()=> openModal('budgets-modal'));
+document.getElementById('cancel-budget-btn').addEventListener('click', ()=> closeModal('budgets-modal'));
+document.getElementById('budget-form').addEventListener('submit', async (e)=>{
+  e.preventDefault();
+  if(!user) return;
+  const newB = { uid:user.uid, year: currentDate.getFullYear(), month: currentDate.getMonth(), category: document.getElementById('budget-category').value.trim(), amount: Number(document.getElementById('budget-amount').value) || 0 };
+  await db.collection('budgets').add(newB);
+  document.getElementById('budget-form').reset();
+  closeModal('budgets-modal');
+  await fetchData();
+});
+
+/* Budgets list rendering in modal */
+async function populateBudgetsList(){
+  const listEl = document.getElementById('budgets-list');
+  if(!budgets || budgets.length===0){ listEl.innerHTML = '<div style="color:var(--muted)">No budgets set.</div>'; return; }
+  listEl.innerHTML = budgets.map(b=>`<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border)"><div>${b.category} — ${settings.currency}${Number(b.amount).toFixed(2)}</div><div><button data-id="${b.id}" class="btn btn-ghost small">Delete</button></div></div>`).join('');
+  listEl.querySelectorAll('button').forEach(btn=>{
+    btn.addEventListener('click', async ()=> {
+      if(confirm('Delete budget?')){
+        await db.collection('budgets').doc(btn.dataset.id).delete();
+        await fetchData();
+        populateBudgetsList();
+      }
+    });
+  });
+}
+
+/* GOAL FORM */
+document.getElementById('goal-form').addEventListener('submit', async (e)=>{
+  e.preventDefault();
+  if(!user) return;
+  const newG = { uid: user.uid, name: document.getElementById('goal-name').value.trim(), amount: Number(document.getElementById('goal-amount').value) || 0, createdAt: firebase.firestore.FieldValue.serverTimestamp() };
+  await db.collection('savingsGoals').add(newG);
+  document.getElementById('goal-form').reset();
+  closeModal('goal-modal');
+  await fetchData();
+});
+
+/* Populate goals view (re-uses budgets modal for simplicity) */
+async function populateGoalsList(){
+  // reuse budgets modal element for quick view
+  const listEl = document.getElementById('budgets-list');
+  if(!goals || goals.length===0){ listEl.innerHTML = '<div style="color:var(--muted)">No savings goals set.</div>'; return; }
+  listEl.innerHTML = goals.map(g=>`<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border)"><div>${g.name} — ${settings.currency}${Number(g.amount).toFixed(2)}</div><div><button data-id="${g.id}" class="btn btn-ghost small">Delete</button></div></div>`).join('');
+  listEl.querySelectorAll('button').forEach(btn=>{
+    btn.addEventListener('click', async ()=> {
+      if(confirm('Delete goal?')){
+        await db.collection('savingsGoals').doc(btn.dataset.id).delete();
+        await fetchData();
+        populateGoalsList();
+      }
+    });
+  });
+}
+
+/* Cancel goal modal */
+document.getElementById('cancel-goal-btn').addEventListener('click', ()=> closeModal('goal-modal'));
+
+/* Month navigation */
+document.getElementById('prev-month-btn').addEventListener('click', ()=> { currentDate.setMonth(currentDate.getMonth()-1); renderApp(); });
+document.getElementById('next-month-btn').addEventListener('click', ()=> { currentDate.setMonth(currentDate.getMonth()+1); renderApp(); });
+document.getElementById('refresh-btn').addEventListener('click', ()=> fetchData());
+
+/* Budgets modal open: populate */
+document.getElementById('open-budgets-btn').addEventListener('click', async ()=> { await populateBudgetsList(); openModal('budgets-modal'); });
+document.getElementById('view-goals-btn').addEventListener('click', async ()=> { await populateGoalsList(); openModal('budgets-modal'); });
+
+/* initial render helpers */
+async function renderInitial(){
+  renderCalendar();
+}
+
+/* kick off */
+renderInitial();
+</script>
+</body>
+</html>
