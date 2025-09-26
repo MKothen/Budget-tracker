@@ -183,7 +183,23 @@ const warnEl = document.getElementById('spend-warning');
 
 /* auth handlers */
 auth.onAuthStateChanged(async (u)=>{
-  if(u){ user=u; userEmailEl.textContent = u.email; authEl.style.display='none'; appEl.style.display='flex'; await loadSettings(); await fetchAll(); } else { user=null; appEl.style.display='none'; authEl.style.display='flex'; }
+  if(u){
+    user = u;
+    userEmailEl.textContent = u.email;
+    authEl.style.display = 'none';
+    appEl.style.display = 'flex';
+    await loadSettings();
+    try {
+      await fetchAll();
+    } catch(err) {
+      console.error("Fetch failed:", err);
+      renderCalendar(); // fallback: render days without data
+    }
+  } else {
+    user = null;
+    appEl.style.display = 'none';
+    authEl.style.display = 'flex';
+  }
 });
 
 document.getElementById('login').addEventListener('click', ()=> auth.signInWithEmailAndPassword(document.getElementById('email').value, document.getElementById('password').value).catch(e=>alert(e.message)));
@@ -328,19 +344,45 @@ function renderCalendar(){
   calendarGrid.innerHTML='';
   const year=currentDate.getFullYear(), month=currentDate.getMonth();
   monthLabel.textContent = currentDate.toLocaleDateString('en-US',{month:'long',year:'numeric'});
+
+  // Weekday headers
+  const days = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+  days.forEach(d => {
+    const e=document.createElement('div');
+    e.className='day';
+    e.style.background='transparent';
+    e.style.border='none';
+    e.style.minHeight='auto';
+    e.innerHTML = `<strong>${d}</strong>`;
+    calendarGrid.appendChild(e);
+  });
+
   const firstDay = new Date(year,month,1).getDay();
   const daysInMonth = new Date(year,month+1,0).getDate();
-  // day names row (optional: skip to save space), create empty slots
-  for(let i=0;i<firstDay;i++){ const e=document.createElement('div'); e.className='day'; e.style.opacity='0'; calendarGrid.appendChild(e); }
+
+  // Empty slots before first day
+  for(let i=0;i<firstDay;i++){
+    const e=document.createElement('div');
+    e.className='day';
+    e.style.opacity='0';
+    calendarGrid.appendChild(e);
+  }
+
+  // Actual days
   for(let d=1; d<=daysInMonth; d++){
-    const date = new Date(year,month,d); const iso=date.toISOString().split('T')[0];
-    const cell = document.createElement('div'); cell.className='day'; cell.dataset.date=iso;
+    const date = new Date(year,month,d);
+    const iso = date.toISOString().split('T')[0];
+    const cell = document.createElement('div');
+    cell.className='day';
+    cell.dataset.date=iso;
     cell.innerHTML = `<div class="num">${d}</div>`;
-    // append tx pills for this date
+    // append tx pills
     transactions.filter(t=>t.date===iso).forEach(t=>{
-      const pill = document.createElement('div'); pill.className = 'transaction-pill '+t.type; pill.textContent = `${t.title} ${settings.currency}${Number(t.amount).toFixed(0)}`;
+      const pill = document.createElement('div');
+      pill.className = 'transaction-pill '+t.type;
+      pill.textContent = `${t.title} ${settings.currency}${Number(t.amount).toFixed(0)}`;
       pill.title = `${t.title} — ${settings.currency}${Number(t.amount).toFixed(2)}${t.isVirtual? ' (recurring)': ''}`;
-      pill.addEventListener('click', (e)=>{ e.stopPropagation(); openTxModal(t); });
+      pill.addEventListener('click',(e)=>{e.stopPropagation();openTxModal(t);});
       cell.appendChild(pill);
     });
     cell.addEventListener('click', ()=> openTxModal({date:iso}));
