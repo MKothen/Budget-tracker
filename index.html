@@ -154,12 +154,7 @@ input,select{width:100%;padding:10px;border-radius:8px;border:1px solid var(--bo
 <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore-compat.js"></script>
 <script>
 /* Keep your firebase config exactly as requested */
-const firebaseConfig = {apiKey: "AIzaSyDzeI6mMuICNJdO_G2F7fiGFlQhyo8RWM8",
-  authDomain: "budgeting-b3974.firebaseapp.com",
-  projectId: "budgeting-b3974",
-  storageBucket: "budgeting-b3974.firebasestorage.app",
-  messagingSenderId: "462817466291",
-  appId: "1:462817466291:web:13260b80355f9d0b559dc6"};
+const firebaseConfig = {apiKey: "AIzaSyDzeI6mMuICNJdO_G2F7fiGFlQhyo8RWM8",authDomain: "budgeting-b3974.firebaseapp.com",projectId: "budgeting-b3974",storageBucket: "budgeting-b3974.firebasestorage.app",messagingSenderId: "462817466291",appId: "1:462817466291:web:13260b80355f9d0b559dc6"};
 firebase.initializeApp(firebaseConfig);
 const auth = firebase.auth();
 const db = firebase.firestore();
@@ -188,23 +183,7 @@ const warnEl = document.getElementById('spend-warning');
 
 /* auth handlers */
 auth.onAuthStateChanged(async (u)=>{
-  if(u){
-    user = u;
-    userEmailEl.textContent = u.email;
-    authEl.style.display = 'none';
-    appEl.style.display = 'flex';
-    await loadSettings();
-    try {
-      await fetchAll();
-    } catch(err) {
-      console.error("Fetch failed:", err);
-      renderCalendar(); // fallback: render days without data
-    }
-  } else {
-    user = null;
-    appEl.style.display = 'none';
-    authEl.style.display = 'flex';
-  }
+  if(u){ user=u; userEmailEl.textContent = u.email; authEl.style.display='none'; appEl.style.display='flex'; await loadSettings(); await fetchAll(); } else { user=null; appEl.style.display='none'; authEl.style.display='flex'; }
 });
 
 document.getElementById('login').addEventListener('click', ()=> auth.signInWithEmailAndPassword(document.getElementById('email').value, document.getElementById('password').value).catch(e=>alert(e.message)));
@@ -349,45 +328,19 @@ function renderCalendar(){
   calendarGrid.innerHTML='';
   const year=currentDate.getFullYear(), month=currentDate.getMonth();
   monthLabel.textContent = currentDate.toLocaleDateString('en-US',{month:'long',year:'numeric'});
-
-  // Weekday headers
-  const days = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
-  days.forEach(d => {
-    const e=document.createElement('div');
-    e.className='day';
-    e.style.background='transparent';
-    e.style.border='none';
-    e.style.minHeight='auto';
-    e.innerHTML = `<strong>${d}</strong>`;
-    calendarGrid.appendChild(e);
-  });
-
   const firstDay = new Date(year,month,1).getDay();
   const daysInMonth = new Date(year,month+1,0).getDate();
-
-  // Empty slots before first day
-  for(let i=0;i<firstDay;i++){
-    const e=document.createElement('div');
-    e.className='day';
-    e.style.opacity='0';
-    calendarGrid.appendChild(e);
-  }
-
-  // Actual days
+  // day names row (optional: skip to save space), create empty slots
+  for(let i=0;i<firstDay;i++){ const e=document.createElement('div'); e.className='day'; e.style.opacity='0'; calendarGrid.appendChild(e); }
   for(let d=1; d<=daysInMonth; d++){
-    const date = new Date(year,month,d);
-    const iso = date.toISOString().split('T')[0];
-    const cell = document.createElement('div');
-    cell.className='day';
-    cell.dataset.date=iso;
+    const date = new Date(year,month,d); const iso=date.toISOString().split('T')[0];
+    const cell = document.createElement('div'); cell.className='day'; cell.dataset.date=iso;
     cell.innerHTML = `<div class="num">${d}</div>`;
-    // append tx pills
+    // append tx pills for this date
     transactions.filter(t=>t.date===iso).forEach(t=>{
-      const pill = document.createElement('div');
-      pill.className = 'transaction-pill '+t.type;
-      pill.textContent = `${t.title} ${settings.currency}${Number(t.amount).toFixed(0)}`;
+      const pill = document.createElement('div'); pill.className = 'transaction-pill '+t.type; pill.textContent = `${t.title} ${settings.currency}${Number(t.amount).toFixed(0)}`;
       pill.title = `${t.title} — ${settings.currency}${Number(t.amount).toFixed(2)}${t.isVirtual? ' (recurring)': ''}`;
-      pill.addEventListener('click',(e)=>{e.stopPropagation();openTxModal(t);});
+      pill.addEventListener('click', (e)=>{ e.stopPropagation(); openTxModal(t); });
       cell.appendChild(pill);
     });
     cell.addEventListener('click', ()=> openTxModal({date:iso}));
