@@ -328,10 +328,17 @@ function renderCalendar(){
   calendarGrid.innerHTML='';
   const year=currentDate.getFullYear(), month=currentDate.getMonth();
   monthLabel.textContent = currentDate.toLocaleDateString('en-US',{month:'long',year:'numeric'});
-  const firstDay = new Date(year,month,1).getDay();
+  
+  // FIX: Adjust for a Monday-first week. .getDay() is 0 for Sun, 1 for Mon.
+  const dayOfWeek = new Date(year, month, 1).getDay();
+  const firstDay = (dayOfWeek === 0) ? 6 : dayOfWeek - 1; // Makes Monday the first day (index 0)
+  
   const daysInMonth = new Date(year,month+1,0).getDate();
-  // day names row (optional: skip to save space), create empty slots
+  
+  // Create empty slots for days before the 1st of the month
   for(let i=0;i<firstDay;i++){ const e=document.createElement('div'); e.className='day'; e.style.opacity='0'; calendarGrid.appendChild(e); }
+  
+  // Create a cell for each day of the month
   for(let d=1; d<=daysInMonth; d++){
     const date = new Date(year,month,d); const iso=date.toISOString().split('T')[0];
     const cell = document.createElement('div'); cell.className='day'; cell.dataset.date=iso;
@@ -347,6 +354,7 @@ function renderCalendar(){
     calendarGrid.appendChild(cell);
   }
 }
+
 
 /* Open transaction modal for add/edit */
 function openTxModal(tx){
