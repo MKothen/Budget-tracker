@@ -154,7 +154,12 @@ input,select{width:100%;padding:10px;border-radius:8px;border:1px solid var(--bo
 <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore-compat.js"></script>
 <script>
 /* Keep your firebase config exactly as requested */
-const firebaseConfig = {apiKey: "AIzaSyDzeI6mMuICNJdO_G2F7fiGFlQhyo8RWM8",authDomain: "budgeting-b3974.firebaseapp.com",projectId: "budgeting-b3974",storageBucket: "budgeting-b3974.firebasestorage.app",messagingSenderId: "462817466291",appId: "1:462817466291:web:13260b80355f9d0b559dc6"};
+const firebaseConfig = {apiKey: "AIzaSyDzeI6mMuICNJdO_G2F7fiGFlQhyo8RWM8",
+  authDomain: "budgeting-b3974.firebaseapp.com",
+  projectId: "budgeting-b3974",
+  storageBucket: "budgeting-b3974.firebasestorage.app",
+  messagingSenderId: "462817466291",
+  appId: "1:462817466291:web:13260b80355f9d0b559dc6"};
 firebase.initializeApp(firebaseConfig);
 const auth = firebase.auth();
 const db = firebase.firestore();
