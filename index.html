@@ -328,7 +328,8 @@ function renderCalendar(){
   calendarGrid.innerHTML='';
   const year=currentDate.getFullYear(), month=currentDate.getMonth();
   monthLabel.textContent = currentDate.toLocaleDateString('en-US',{month:'long',year:'numeric'});
-  const firstDay = new Date(year,month,1).getDay();
+  const firstDay = (new Date(year, month, 1).getDay() + 6) % 7;
+
   const daysInMonth = new Date(year,month+1,0).getDate();
   // day names row (optional: skip to save space), create empty slots
   for(let i=0;i<firstDay;i++){ const e=document.createElement('div'); e.className='day'; e.style.opacity='0'; calendarGrid.appendChild(e); }
