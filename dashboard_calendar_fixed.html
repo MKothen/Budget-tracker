@@ -1,0 +1,96 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Budget Dashboard</title>
+<style>
+  body { font-family: system-ui, sans-serif; margin: 0; padding: 0; background: #f8f9fb; }
+  .container { display: flex; height: 100vh; }
+  .sidebar { width: 240px; background: #fff; border-right: 1px solid #ddd; padding: 20px; display: flex; flex-direction: column; }
+  .sidebar h2 { margin: 0 0 20px; color: #007AFF; font-weight: 700; }
+  .sidebar button { background: none; border: none; padding: 10px 0; text-align: left; font-size: 15px; cursor: pointer; color: #333; }
+  .content { flex: 1; padding: 20px; overflow-y: auto; display: flex; flex-direction: column; gap: 20px; }
+  .cards { display: flex; gap: 20px; flex-wrap: wrap; }
+  .card { background: #fff; border-radius: 12px; padding: 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.08); flex: 1; min-width: 200px; }
+  .calendar { background: #fff; border-radius: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.08); padding: 20px; }
+  .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 5px; margin-top: 10px; }
+  .day { background: #f2f2f2; border-radius: 8px; padding: 10px; text-align: center; min-height: 50px; position: relative; transition: background 0.3s; }
+  .day.income-flash { background: #d4edda !important; }
+  .day.expense-flash { background: #f8d7da !important; }
+</style>
+</head>
+<body>
+<div class="container">
+  <div class="sidebar">
+    <h2>Budget Dashboard</h2>
+    <button onclick="openSettings()">Settings</button>
+    <button onclick="openBudgets()">Manage Budgets</button>
+    <button onclick="logout()">Logout</button>
+  </div>
+  <div class="content">
+    <div class="cards">
+      <div class="card"><h3>Starting Balance</h3><p id="starting-balance">€0.00</p></div>
+      <div class="card"><h3>Monthly Net Flow</h3><p id="net-flow">€0.00</p></div>
+      <div class="card"><h3>Predicted End Balance</h3><p id="end-balance">€0.00</p></div>
+      <div class="card"><h3>You Can Spend Today</h3><p id="daily-allowance">€0.00</p><small id="allowance-warning" style="color:red;display:none;">⚠ Overspending risk</small></div>
+    </div>
+    <div class="calendar">
+      <div style="display:flex;justify-content:space-between;align-items:center;">
+        <button onclick="prevMonth()">&lt;</button>
+        <h3 id="month-label">September 2025</h3>
+        <button onclick="nextMonth()">&gt;</button>
+      </div>
+      <div class="calendar-grid" id="calendar-grid"></div>
+    </div>
+  </div>
+</div>
+<script>
+let currentMonth = new Date().getMonth();
+let currentYear = new Date().getFullYear();
+
+function renderCalendar() {
+  const grid = document.getElementById('calendar-grid');
+  grid.innerHTML = ''; // clear previous cells
+
+  const firstDay = new Date(currentYear, currentMonth, 1).getDay();
+  const daysInMonth = new Date(currentYear, currentMonth+1, 0).getDate();
+  document.getElementById('month-label').textContent = 
+    new Date(currentYear, currentMonth).toLocaleDateString('en-US',{month:'long',year:'numeric'});
+
+  // Empty cells before first day
+  for (let i = 0; i < firstDay; i++) {
+    let empty = document.createElement('div');
+    grid.appendChild(empty);
+  }
+
+  for (let day = 1; day <= daysInMonth; day++) {
+    let cell = document.createElement('div');
+    cell.className = 'day';
+    cell.textContent = day;
+    grid.appendChild(cell);
+  }
+}
+
+function prevMonth() {
+  currentMonth--;
+  if (currentMonth < 0) { currentMonth = 11; currentYear--; }
+  renderCalendar();
+}
+
+function nextMonth() {
+  currentMonth++;
+  if (currentMonth > 11) { currentMonth = 0; currentYear++; }
+  renderCalendar();
+}
+
+function openSettings() { alert("Settings would open here."); }
+function openBudgets() { alert("Manage Budgets would open here."); }
+function logout() { alert("Logging out..."); }
+
+// Initial render
+document.addEventListener('DOMContentLoaded', renderCalendar);
+</script>
+</body>
+</html>
