@@ -264,42 +264,53 @@ async function fetchAll(forceUpdate=false){
 }
 
 /* Build transactions for current month including virtual recurring occurrences */
-function buildTransactionsForMonth(year,month){
-  transactions = [];
-  const monthStart = new Date(year,month,1);
-  const monthEnd = new Date(year,month+1,0);
-  // include non-recurring transactions that are within month (and historical ones are kept for starting balance calc elsewhere)
-  rawTx.forEach(t=>{
-    // normalize amount
-    t.amount = Number(t.amount)||0;
-    // include all stored tx (we'll filter when rendering)
-    // generate virtual occurrences for recurring ones
-    if(t.isRecurring){
-      let occ = new Date(t.date);
-      // step forward/back to include occurrences falling into current month - allow past occurrences too
-      // normalize occ to same day of month as original recurring start
-      while(occ <= monthEnd){
-        if(occ >= monthStart && occ <= monthEnd){
-          const iso=occ.toISOString().split('T')[0];
-          // avoid duplication if user already has a real tx on that date same title+amount
-          const exists = rawTx.some(r=>r.title===t.title && Number(r.amount)===Number(t.amount) && r.date===iso);
-          if(!exists) transactions.push({...t,date:iso,isVirtual:true,originalId:t.id});
+function buildTransactionsForMonth(year, month) {
+    transactions = [];
+    const monthStart = new Date(year, month, 1);
+    const monthEnd = new Date(year, month + 1, 0);
+
+    rawTx.forEach(t => {
+        // Skip this record entirely if it has no valid date
+        if (!t.date || isNaN(new Date(t.date))) {
+            return;
         }
-        if(t.recurrence==='monthly') occ.setMonth(occ.getMonth()+1);
-        else if(t.recurrence==='weekly') occ.setDate(occ.getDate()+7);
-        else if(t.recurrence==='daily') occ.setDate(occ.getDate()+1);
-        else break;
-      }
-    }
-    // include stored tx that fall into month
-    if(t.date){
-      const d = new Date(t.date);
-      if(d>=monthStart && d<=monthEnd) transactions.push(t);
-    }
-  });
-  // sort
-  transactions.sort((a,b)=> a.date.localeCompare(b.date) || b.amount - a.amount);
+
+        t.amount = Number(t.amount) || 0;
+
+        // Generate virtual occurrences for recurring transactions
+        if (t.isRecurring) {
+            try {
+                let occ = new Date(t.date);
+                // Ensure the loop progresses correctly
+                while (occ <= monthEnd) {
+                    if (occ >= monthStart) {
+                        const iso = occ.toISOString().split('T')[0];
+                        const exists = rawTx.some(r => r.title === t.title && Number(r.amount) === Number(t.amount) && r.date === iso);
+                        if (!exists) {
+                            transactions.push({ ...t, date: iso, isVirtual: true, originalId: t.id });
+                        }
+                    }
+                    if (t.recurrence === 'monthly') occ.setMonth(occ.getMonth() + 1);
+                    else if (t.recurrence === 'weekly') occ.setDate(occ.getDate() + 7);
+                    else if (t.recurrence === 'daily') occ.setDate(occ.getDate() + 1);
+                    else break; // Prevents infinite loops
+                }
+            } catch (e) {
+                console.error("Could not process recurring date for transaction:", t);
+            }
+        }
+
+        // Include the original stored transaction if it falls within the current month
+        const d = new Date(t.date);
+        if (d >= monthStart && d <= monthEnd) {
+            transactions.push(t);
+        }
+    });
+
+    // Sort all transactions for the month by date
+    transactions.sort((a, b) => a.date.localeCompare(b.date) || b.amount - a.amount);
 }
+
 
 /* get starting balance: override or compute */
 async function getStartingBalance(year,month){
